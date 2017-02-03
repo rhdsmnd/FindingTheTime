@@ -5,6 +5,11 @@ import './App.css';
 
 var ip = '127.0.0.1';
 
+const DAY_STR = "the day of";
+const WEEK_STR = "the week containing";
+const MONTH_STR = "the month containing";
+const YEAR_STR = "the year containing";
+
 class App extends Component {
   
 	constructor() {
@@ -33,7 +38,11 @@ class App extends Component {
 		});
 	}
 
+	handleDateChange(newObj) {
+		// validate
 
+		
+	}
 
 	render() {
 		return (
@@ -81,24 +90,42 @@ class AppHeader extends Component {
 	render() {
 		var intervalStr;
 		if (this.props.interval === 'd') {
-			intervalStr = "";
+			intervalStr = DAY_STR;
 		} else if (this.props.interval === 'w') {
-			intervalStr = "the week containing ";
+			intervalStr = WEEK_STR;
 		} else if (this.props.interval === 'm') {
-			intervalStr = "the month containing ";
+			intervalStr = MONTH_STR;
 		} else if (this.props.interval === 'y') {
-			intervalStr = "the year containing";
+			intervalStr = YEAR_STR;
 		}
-
 
 		return (
 			<div>
-				<div>Showing sessions for {intervalStr}{this.props.date.toDateString()}</div>
+				<div>Showing sessions for <ButtonDropdown intervalStr={intervalStr} /> <input type="text" id="header-datepicker" /></div>
 				<div>My summary view.</div>
 			</div>
 		);
 	}
+}
 
+class ButtonDropdown extends Component {
+	constructor(props) {
+		super(props);
+	}
+
+	render() {
+		return (
+			<div className="btn-group">
+				<button type="button" className="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">{this.props.intervalStr}</button>
+				<ul className="dropdown-menu">
+					<li><a href="#">{DAY_STR}</a></li>
+					<li><a href="#">{WEEK_STR}</a></li>
+					<li><a href="#">{MONTH_STR}</a></li>
+					<li><a href="#">{YEAR_STR}</a></li>
+				</ul>
+			</div>
+		);
+	}
 }
 /**
 class DataSummary extends Component {
