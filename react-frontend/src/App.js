@@ -79,14 +79,28 @@ class AppHeader extends Component {
 	}
 
 	render() {
+		var intervalStr;
+		if (this.props.interval === 'd') {
+			intervalStr = "";
+		} else if (this.props.interval === 'w') {
+			intervalStr = "the week containing ";
+		} else if (this.props.interval === 'm') {
+			intervalStr = "the month containing ";
+		} else if (this.props.interval === 'y') {
+			intervalStr = "the year containing";
+		}
+
+
 		return (
-			<div>placeholder header text</div>
+			<div>
+				<div>Showing sessions for {intervalStr}{this.props.date.toDateString()}</div>
+				<div>My summary view.</div>
+			</div>
 		);
 	}
 
 }
-
-	/**
+/**
 class DataSummary extends Component {
 
 	constructor(props) {
