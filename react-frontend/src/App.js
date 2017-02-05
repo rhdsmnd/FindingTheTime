@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import logo from './logo.svg';
 import './App.css';
+import moment from 'moment';
+import $ from 'jquery';
 
 
 var ip = '127.0.0.1';
@@ -38,16 +40,17 @@ class App extends Component {
 		});
 	}
 
-	handleDateChange(newObj) {
+	handleStateChange(newDateStr, newIntervalStr) {
 		// validate
-
-		
+		console.log(newDateStr);
+		console.log(newIntervalStr);
 	}
 
 	render() {
 		return (
 			<div>
-				<AppHeader date={this.state.date} interval={this.state.interval} sessions={this.state.sessions} />
+				<AppHeader date={this.state.date} interval={this.state.interval} sessions={this.state.sessions}
+							handleStateChange={this.handleStateChange} />
 
 				<hr />
 
@@ -85,9 +88,11 @@ class AppHeader extends Component {
 
 	constructor(props) {
 		super(props);
+
 	}
 
 	render() {
+
 		var intervalStr;
 		if (this.props.interval === 'd') {
 			intervalStr = DAY_STR;
@@ -100,33 +105,46 @@ class AppHeader extends Component {
 		}
 
 		return (
-			<div>
-				<div>Showing sessions for <ButtonDropdown intervalStr={intervalStr} /> <input type="text" id="header-datepicker" /></div>
-				<div>My summary view.</div>
+			<div className="container">
+				<DateInputForm intervalStr={intervalStr} date={this.props.date} handleStateChange={this.props.handleStateChange} />
+				<div className="row"><div className="col-lg-12">My summary view.</div></div>
 			</div>
 		);
 	}
 }
 
-class ButtonDropdown extends Component {
+class DateInputForm extends Component {
 	constructor(props) {
 		super(props);
+		console.log(props);
 	}
 
 	render() {
 		return (
-			<div className="btn-group">
-				<button type="button" className="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">{this.props.intervalStr}</button>
-				<ul className="dropdown-menu">
-					<li><a href="#">{DAY_STR}</a></li>
-					<li><a href="#">{WEEK_STR}</a></li>
-					<li><a href="#">{MONTH_STR}</a></li>
-					<li><a href="#">{YEAR_STR}</a></li>
-				</ul>
+		  <div className="row">
+		   <div className="col-lg-12">
+			<div className="input-group">
+				Showing sessions for 
+				<div className="input-group-btn">
+					<button type="button" id="date-interval-display" className="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{this.props.intervalStr}</button>
+					<ul className="dropdown-menu">
+						<li><a href="#" onClick={(e) => document.getElementById("date-interval-display").innerHTML = DAY_STR} >{DAY_STR}</a></li>
+						<li><a href="#" onClick={(e) => document.getElementById("date-interval-display").innerHTML = WEEK_STR } >{WEEK_STR}</a></li>
+						<li><a href="#" onClick={(e) => document.getElementById("date-interval-display").innerHTML = MONTH_STR} >{MONTH_STR}</a></li>
+						<li><a href="#" onClick={(e) => document.getElementById("date-interval-display").innerHTML = YEAR_STR} >{YEAR_STR}</a></li>
+					</ul>
+				</div>
+				<input type="text" className="form-control" id="header-datepicker" value={moment(this.props.date.toDateString()).format('L')} />
+				<span className="input-group-btn">
+					<button className="btn btn-default" type="button" onClick={(() => this.props.handleStateChange(document.getElementById("header-datepicker").value, document.getElementById("date-interval-display").innerHTML) )}>Go!</button>
+				</span>
 			</div>
+		</div>
+	    </div>
 		);
 	}
 }
+
 /**
 class DataSummary extends Component {
 
