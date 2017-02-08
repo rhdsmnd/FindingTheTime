@@ -2,6 +2,8 @@ import React, { Component } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import moment from 'moment';
+import Chart from 'chart.js';
+
 import $ from 'jquery';
 
 
@@ -48,7 +50,7 @@ class App extends Component {
 
 	render() {
 		return (
-			<div>
+			<div className="container">
 				<AppHeader date={this.state.date} interval={this.state.interval} sessions={this.state.sessions}
 							handleStateChange={this.handleStateChange} />
 
@@ -105,9 +107,9 @@ class AppHeader extends Component {
 		}
 
 		return (
-			<div className="container">
+			<div>
 				<DateInputForm intervalStr={intervalStr} date={this.props.date} handleStateChange={this.props.handleStateChange} />
-				<div className="row"><div className="col-lg-12">My summary view.</div></div>
+				<SummaryView sessions={this.props.sessions} interval={this.props.interval} date={this.props.date} />
 			</div>
 		);
 	}
@@ -139,8 +141,116 @@ class DateInputForm extends Component {
 					<button className="btn btn-default" type="button" onClick={(() => this.props.handleStateChange(document.getElementById("header-datepicker").value, document.getElementById("date-interval-display").innerHTML) )}>Go!</button>
 				</span>
 			</div>
-		</div>
+		  </div>
 	    </div>
+		);
+	}
+}
+
+class SummaryView extends Component {
+	constructor(props) {
+		super(props);
+	}
+
+	render() {
+		return (
+			<div className="row">
+				<Timeline sessions={this.props.sessions} interval={this.props.interval} date={this.props.date} />
+		 		<PieChart sessions={this.props.sessions} interval={this.props.interval} date={this.props.date} />
+			</div>
+		);
+	}
+}
+
+class Timeline extends Component {
+	constructor(props) {
+		super(props);
+	}
+
+	componentDidMount() {
+		var ctx = document.getElementById("summary-timeline");
+		console.log(ctx);
+		var myChart = new Chart(ctx, {
+		    type: 'horizontalBar',
+		    data: {
+		        datasets: [{
+		            label: '# of Votes',
+		            data: [12],
+		            backgroundColor: [
+		                'rgba(255, 99, 132, 0.2)'
+		            ],
+		            borderColor: [
+		                'rgba(255,99,132,1)'
+		            ],
+		            borderWidth: 1
+		        }, {
+		        	label: 'asdfasdf',
+		        	data: [9],
+		        	backgroundColor: [
+		        		'rgba(54, 162, 235, 0.2)'
+		        	],
+		        	borderColor: [
+		        		'rgba(54, 162, 235, 1)'
+		        	],
+		        	borderWidth: 1
+		        }]
+		    },
+		    options: {
+		        scales: {
+		            yAxes: [{
+		                ticks: {
+		                    beginAtZero:true
+		                },
+		                stacked: true
+		            }],
+		            xAxes: [{
+		            	stacked: true
+		            }]
+		        },
+		        maintainAspectRatio: false
+		    }
+		});
+	}
+
+	render() {
+		return (
+			<div className="col-lg-6" ><canvas id="summary-timeline"></canvas> </div>
+		);
+	}
+}
+
+class PieChart extends Component {
+	constructor(props) {
+		super(props);
+	}
+
+	componentDidMount() {
+		var ctx = document.getElementById("summary-pie-chart");
+		console.log(ctx);
+		var myChart = new Chart(ctx, {
+		    type: 'doughnut',
+		    data: {
+		    	labels: ["asdf", "fdsa"],
+		        datasets: [{
+		            label: '# of Votes',
+		            data: [12, 9],
+		            backgroundColor: [
+		        		'rgba(54, 162, 235, 0.2)',
+		                'rgba(255, 99, 132, 0.2)'
+		            ],
+		            borderColor: [
+		        		'rgba(54, 162, 235, 1)',
+		                'rgba(255,99,132,1)'
+		            ],
+		            borderWidth: 1
+		        }]
+		    }
+		});
+	}
+
+	render() {
+		return (
+			<div className="col-lg-6"><canvas height="75" id="summary-pie-chart"></canvas></div>
 		);
 	}
 }
@@ -162,10 +272,55 @@ class AppBody extends Component {
 
 	render() {
 		return (
-			<div>placeholder body text</div>
+			<table className="table table-bordered">
+				<TableHeader />
+				<TableBody sessions={this.props.sessions} />
+			</table>
 		);
 	}
 }
+
+class TableHeader extends Component {
+	constructor(props) {
+		super(props);
+	}
+
+	render() {
+		return (
+			<thead>
+				<tr>
+					<th>Header 1</th>
+					<th>Header 2</th>
+					<th>Header 3</th>
+				</tr>
+			</thead>
+		);
+	}
+}
+
+class TableBody extends Component {
+	constructor(props) {
+		super(props);
+	}
+
+	render() {
+		return (
+			<tbody>
+				<tr>
+					<td>a</td>
+					<td>b</td>
+					<td>c</td>
+				</tr>
+				<tr>
+					<td>d</td>
+					<td>e</td>
+					<td>f</td>
+				</tr>
+			</tbody>
+		);
+	}
+}
+
 	/**
 class StatsTable extends Component {
 
@@ -190,3 +345,23 @@ class PieChart extends Component {
 */
 
 export default App;
+
+
+/**
+
+, "Blue", "Yellow", "Green", "Purple", "Orange"
+
+,
+'rgba(54, 162, 235, 0.2)',
+'rgba(255, 206, 86, 0.2)',
+'rgba(75, 192, 192, 0.2)',
+'rgba(153, 102, 255, 0.2)',
+'rgba(255, 159, 64, 0.2)'
+
+'rgba(54, 162, 235, 1)',
+'rgba(255, 206, 86, 1)',
+'rgba(75, 192, 192, 1)',
+'rgba(153, 102, 255, 1)',
+'rgba(255, 159, 64, 1)'
+
+*/
