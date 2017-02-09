@@ -7,12 +7,41 @@ import Chart from 'chart.js';
 import $ from 'jquery';
 
 
-var ip = '127.0.0.1';
+const ip = '127.0.0.1';
 
 const DAY_STR = "the day of";
 const WEEK_STR = "the week containing";
 const MONTH_STR = "the month containing";
 const YEAR_STR = "the year containing";
+
+
+function getIntervalStr(intervalChar) {
+	if (intervalChar == 'd') {
+		return DAY_STR;
+	} else if (intervalChar == 'w') {
+		return WEEK_STR;
+	} else if (intervalChar == 'm') {
+		return MONTH_STR;
+	} else if (intervalChar == 'y') {
+		return YEAR_STR;
+	}
+
+	return null;
+}
+
+function getIntervalChar(intervalStr) {
+	if (intervalStr == DAY_STR) {
+		return 'd';
+	} else if (intervalStr == WEEK_STR) {
+		return 'w';
+	} else if (intervalStr == MONTH_STR) {
+		return 'm';
+	} else if (intervalStr == YEAR_STR) {
+		return 'y';
+	}
+
+	return null;
+}
 
 class App extends Component {
   
@@ -20,7 +49,7 @@ class App extends Component {
 		super();
 		this.state = {
 			interval: 'd',
-			date: new Date(),
+			date: moment(new Date()).format("MM-DD-YYYY"),
 			sessions: []
 		};
 	}
@@ -42,10 +71,26 @@ class App extends Component {
 		});
 	}
 
-	handleStateChange(newDateStr, newIntervalStr) {
+	handleStateChange(newDateStr, newIntervalChar) {
 		// validate
 		console.log(newDateStr);
-		console.log(newIntervalStr);
+		console.log(newIntervalChar);
+
+/**
+		var req = new XMLHttpRequest();
+
+		var url = "query?interval=" + newIntervalChar + "&"
+					+ "date=" + newDateStr;
+
+		req.open("GET", "http://localhost/" + url);
+
+		req.addEventListener("load", function(e) {
+			var resp = e.target.response;
+
+			this.setState({
+				sessions: resp.sessions
+			});
+		});*/
 	}
 
 	render() {
@@ -121,6 +166,17 @@ class DateInputForm extends Component {
 		console.log(props);
 	}
 
+	submitSessionReq(newIntervalStr, newDate) {
+		var newIntervalChar = getIntervalChar(newIntervalStr);
+
+		if (newIntervalChar == null) {
+			return;
+		}
+
+		this.props.handleStateChange(newIntervalChar, newDate);
+		//this.props.handleStateChange(document.getElementById("header-datepicker").value, document.getElementById("date-interval-display").innerHTML)
+	}
+
 	render() {
 		return (
 		  <div className="row">
@@ -136,9 +192,9 @@ class DateInputForm extends Component {
 						<li><a href="#" onClick={(e) => document.getElementById("date-interval-display").innerHTML = YEAR_STR} >{YEAR_STR}</a></li>
 					</ul>
 				</div>
-				<input type="text" className="form-control" id="header-datepicker" value={moment(this.props.date.toDateString()).format('L')} />
+				<input type="text" className="form-control" id="header-datepicker" value={this.props.date} />
 				<span className="input-group-btn">
-					<button className="btn btn-default" type="button" onClick={(() => this.props.handleStateChange(document.getElementById("header-datepicker").value, document.getElementById("date-interval-display").innerHTML) )}>Go!</button>
+					<button className="btn btn-default" type="button" onClick={(() => this.submitSessionReq(document.getElementById("date-interval-display").innerHTML, document.getElementById("header-datepicker").value))}>Go!</button>
 				</span>
 			</div>
 		  </div>
@@ -170,12 +226,58 @@ class Timeline extends Component {
 	componentDidMount() {
 		var ctx = document.getElementById("summary-timeline");
 		console.log(ctx);
+
+		var myChart = new Chart(ctx, {
+			 type: 'horizontalBar',
+		    data: {
+		        labels: [""],
+		        datasets: [{
+		            label: '# of Votes',
+		            data: [12],
+		            backgroundColor: [
+		                'rgba(255, 99, 132, 0.2)'
+		            ],
+		            borderColor: [
+		                'rgba(255,99,132,1)'
+		            ],
+		            borderWidth: 1
+		        },
+		        {
+		        	label: '# of Boats',
+		            data: [12],
+		            backgroundColor: [
+		            	'rgba(54, 162, 235, 0.2)'
+		            ],
+		            borderColor: [
+						'rgba(54, 162, 235, 1)'
+					],		            	
+					borderWidth: 1
+		        }]
+		    },
+		    options: {
+		        scales: {
+		            yAxes: [{
+		                ticks: {
+		                    beginAtZero:true
+		                },
+		                stacked: true
+		            }],
+		            xAxes: [{
+		            	stacked: true
+		            }]
+		        },
+		        maintainAspectRatio: false
+		    }
+
+		});
+
+		/**
 		var myChart = new Chart(ctx, {
 		    type: 'horizontalBar',
 		    data: {
 		        datasets: [{
 		            label: '# of Votes',
-		            data: [12],
+		            data: [12,11],
 		            backgroundColor: [
 		                'rgba(255, 99, 132, 0.2)'
 		            ],
@@ -209,7 +311,7 @@ class Timeline extends Component {
 		        },
 		        maintainAspectRatio: false
 		    }
-		});
+		});*/
 	}
 
 	render() {
