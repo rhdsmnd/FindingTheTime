@@ -20,35 +20,37 @@ class App extends Component {
 		super();
 		this.state = {
 			interval: 'd',
-			date: new Date(),
+			date: moment(),
 			sessions: []
 		};
 	}
 
 	componentWillMount() {
-		var req = new XMLHttpRequest();
-
-		var url = "query?interval=" + this.state.interval + "&"
-					+ "date=" + this.state.date;
-
-		req.open("GET", "http://localhost/" + url);
-
-		req.addEventListener("load", function(e) {
-			var resp = e.target.response;
-
-			this.setState({
-				sessions: resp.sessions
-			});
-		});
+		App.setNewInterval(this.state.date, this.state.interval);
 	}
 
 	handleStateChange(newDateStr, newIntervalStr) {
 		// validate
-		console.log(newDateStr);
-		console.log(newIntervalStr);
 
-		var dateRegex = /\d\d-\d\d-\d\d\d\d/;
+		let newDate = moment(newDateStr, 'MM-DD-YYYY', true);
 
+		let today = moment();
+		let tomorrow = moment({
+			y: today.year(),
+			M: today.month(),
+			d: today.date()
+		}).add(1, 'day');
+
+		console.log(newDate);
+		console.log(tomorrow);
+		if (newDate.format() == 'Invalid date' || newDate.isAfter(tomorrow)) {
+			console.log("Invalid date string.");
+			return;
+		}
+
+		console.log('hello');
+
+		//TODO: CHANGE newIntervalStr TO lengthStr -- interval should comprise a date AND a length
 		let newInterval;
 		if (newIntervalStr === DAY_STR) {
 			newInterval = 'd';
@@ -63,6 +65,30 @@ class App extends Component {
 			return;
 		}
 
+		App.setNewInterval(newDate, newInterval);
+
+	}
+
+	static setNewInterval(dateObj, intervalChar) {
+
+        var req = new XMLHttpRequest();
+
+        var url = "query?interval=" + intervalChar + "&"
+            + "date=" + dateObj.format('MM-DD-YYYY');
+
+        console.log(url);
+
+        return;
+
+        req.open("GET", "http://localhost/" + url);
+
+        req.addEventListener("load", function(e) {
+            var resp = e.target.response;
+
+            this.setState({
+                sessions: resp.sessions
+            });
+        });
 	}
 
 	render() {
@@ -153,7 +179,7 @@ class DateInputForm extends Component {
 						<li><a href="#" onClick={(e) => document.getElementById("date-interval-display").innerHTML = YEAR_STR} >{YEAR_STR}</a></li>
 					</ul>
 				</div>
-				<input type="text" className="form-control" id="header-datepicker" value={moment(this.props.date.toDateString()).format('L')} />
+				<input type="text" className="form-control" id="header-datepicker" value={this.props.date.format('MM-DD-YYYY')} />
 				<span className="input-group-btn">
 					<button className="btn btn-default" type="button" onClick={(() => this.props.handleStateChange(document.getElementById("header-datepicker").value, document.getElementById("date-interval-display").innerHTML) )}>Go!</button>
 				</span>
