@@ -7,7 +7,7 @@ import Chart from 'chart.js';
 import $ from 'jquery';
 
 
-var ip = '127.0.0.1';
+const ip = '127.0.0.1';
 
 const DAY_STR = "the day of";
 const WEEK_STR = "the week containing";
@@ -46,6 +46,23 @@ class App extends Component {
 		// validate
 		console.log(newDateStr);
 		console.log(newIntervalStr);
+
+		var dateRegex = /\d\d-\d\d-\d\d\d\d/;
+
+		let newInterval;
+		if (newIntervalStr === DAY_STR) {
+			newInterval = 'd';
+		} else if (newIntervalStr === WEEK_STR) {
+			newInterval = 'w';
+		} else if (newIntervalStr == MONTH_STR) {
+			newInterval = 'm';
+		} else if (newIntervalStr == YEAR_STR) {
+			newInterval = 'y';
+		} else {
+			console.log('Error: cannot parse interval in handleStateChange.');
+			return;
+		}
+
 	}
 
 	render() {
