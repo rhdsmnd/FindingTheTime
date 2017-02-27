@@ -213,6 +213,7 @@ class Timeline extends Component {
 	componentDidMount() {
 		var ctx = document.getElementById("summary-timeline");
 		console.log(ctx);
+
 		var myChart = new Chart(ctx, {
 		    type: 'horizontalBar',
 		    data: {
@@ -253,6 +254,49 @@ class Timeline extends Component {
 		        maintainAspectRatio: false
 		    }
 		});
+
+        /**
+		 * var myChart = new Chart(ctx, {
+		    type: 'horizontalBar',
+		    data: {
+		        datasets: [{
+		            label: '# of Votes',
+		            data: [12],
+		            backgroundColor: [
+		                'rgba(255, 99, 132, 0.2)'
+		            ],
+		            borderColor: [
+		                'rgba(255,99,132,1)'
+		            ],
+		            borderWidth: 1
+		        }, {
+		        	label: 'asdfasdf',
+		        	data: [9],
+		        	backgroundColor: [
+		        		'rgba(54, 162, 235, 0.2)'
+		        	],
+		        	borderColor: [
+		        		'rgba(54, 162, 235, 1)'
+		        	],
+		        	borderWidth: 1
+		        }]
+		    },
+		    options: {
+		        scales: {
+		            yAxes: [{
+		                ticks: {
+		                    beginAtZero:true
+		                },
+		                stacked: true
+		            }],
+		            xAxes: [{
+		            	stacked: true
+		            }]
+		        },
+		        maintainAspectRatio: false
+		    }
+		});
+         */
 	}
 
 	render() {
@@ -332,9 +376,11 @@ class TableHeader extends Component {
 		return (
 			<thead>
 				<tr>
-					<th>Header 1</th>
-					<th>Header 2</th>
-					<th>Header 3</th>
+					<th>Start Time</th>
+					<th>End Time</th>
+					<th>Primary Type</th>
+					<th>Secondary Type</th>
+					<th>Notes</th>
 				</tr>
 			</thead>
 		);
@@ -347,18 +393,47 @@ class TableBody extends Component {
 	}
 
 	render() {
+
+        var dataOptions = {
+            datasets: []
+        };
+
+        for (let i = 0; i < this.props.sessions.length; i += 1) {
+            let session = this.props.sessions[i];
+            let startTime = moment(session[start_ts]).format("h:m A");
+            let endTime = moment(session[end_ts]).format("h:m A");
+
+            let sessionObj = {
+                session[]
+            };
+            if () {
+
+			}
+        }
+
 		return (
 			<tbody>
-				<tr>
-					<td>a</td>
-					<td>b</td>
-					<td>c</td>
-				</tr>
-				<tr>
-					<td>d</td>
-					<td>e</td>
-					<td>f</td>
-				</tr>
+				{this.props.sessions.map((session) => {
+
+					let startTime = moment(session["start_ts"]).format("h:m A");
+					let endTime = session["end_ts"] ? moment(session["end_ts"].format("h:m A")) : moment().format("h:m A");
+
+					let primTypeName = session["prim_type"]["name"];
+					let secondTypeName = session["second_type"] ? session["second_type"]["name"] : "";
+
+					let descr = session["descr"] ? session["descr"] : "";
+
+					return (
+						<tr key={session["start_ts"]}>
+							<td>{moment(session["start_ts"])}</td>
+							<td>{}</td>
+							<td>{}</td>
+							<td>{}</td>
+							<td>{}</td>
+							<td>{}</td>
+						</tr>
+                    );
+                })}
 			</tbody>
 		);
 	}
