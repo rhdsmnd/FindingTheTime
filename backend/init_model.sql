@@ -1,31 +1,44 @@
-CREATE SCHEMA ftt;
 
-CREATE TABLE ftt.color(
-    r int,
-    g int,
-    b int,
+CREATE TABLE IF NOT EXISTS color(
+    r INTEGER,
+    g INTEGER,
+    b INTEGER,
     PRIMARY KEY(r, g, b)
 );
 
-CREATE TABLE ftt.type(
-    id serial PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS prim_type(
+    id INTEGER PRIMARY KEY ASC AUTOINCREMENT,
     name text,
-    r int NOT NULL,
-    g int NOT NULL,
-    b int NOT NULL,
-    FOREIGN KEY(r, g, b) REFERENCES ftt.color(r, g, b)
+    r INTEGER NOT NULL,
+    g INTEGER NOT NULL,
+    b INTEGER NOT NULL,
+    FOREIGN KEY(r, g, b) REFERENCES color(r, g, b)
 );
 
-CREATE TABLE ftt.session(
-    id serial PRIMARY KEY,
-    start_ts bigint,
-    end_ts bigint,
-    prim_type int REFERENCES ftt.type(id),
-    descr text
+CREATE TABLE IF NOT EXISTS second_type(
+    id INTEGER PRIMARY KEY ASC AUTOINCREMENT,
+    name text,
+    r INTEGER NOT NULL,
+    g INTEGER NOT NULL,
+    b INTEGER NOT NULL,
+    prim_type_id INTEGER NOT NULL,
+    FOREIGN KEY(r, g, b) REFERENCES color(r, g, b),
+    FOREIGN KEY(prim_type_id) REFERENCES prim_type(id)
 );
 
-CREATE TABLE ftt.other_types(
-    session_id int REFERENCES ftt.session(id),
-    type_id int REFERENCES ftt.type(id),
-    PRIMARY KEY(session_id, type_id)
+CREATE TABLE IF NOT EXISTS session(
+    id INTEGER PRIMARY KEY ASC AUTOINCREMENT,
+    start_ts INTEGER,
+    end_ts INTEGER,
+    descr text,
+    prim_type_id INTEGER,
+    second_type_id INTEGER,
+    FOREIGN KEY(prim_type_id) REFERENCES prim_type(id),
+    FOREIGN KEY(second_type_id) REFERENCES second_type(id)
 );
+
+--CREATE TABLE IF NOT EXISTS other_types(
+--    session_id INTEGER REFERENCES session(id),
+--    type_id INTEGER REFERENCES type(id),
+--    PRIMARY KEY(session_id, type_id)
+--);
