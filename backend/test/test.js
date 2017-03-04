@@ -1,3 +1,7 @@
 var assert = require('assert');
 
-descibe()
+describe('Routes', function() {
+    describe('/query function'), function() {
+
+    }
+}

@@ -5,7 +5,16 @@ import fs from 'fs';
 import path from 'path';
 
 var app = express();
-var db = setupDb();
+
+var db;
+if (process.argv.length == 3) {
+    db = setupDb(process.argv[2]);
+} else {
+    db = setupDb("");
+}
+
+console.log(db);
+
 
 var clicks = [];
 
@@ -77,14 +86,24 @@ function queryDb(interval, start_ts) {
 
 }
 
-function setupDb() {
-    try {
-        fs.mkdirSync(path.join(__dirname, 'db_data'));
-    } catch(err) {
-        if (err["code"] != "EEXIST") {
-            console.log(err);
+function setupDb(filePath) {
+
+
+
+    if (filePath == "") {
+        try {
+            fs.mkdirSync(path.join(__dirname, 'db_data'));
+        } catch (err) {
+            if (err["code"] != "EEXIST") {
+                console.log(err);
+                throw err;
+            }
         }
+        filePath = path.join(__dirname, 'db_data', 'db.sqlite3');
+    } else {
+        filePath = path.join(__dirname, filePath);
     }
 
-    return new sqlite3.Database(path.join(__dirname, 'db_data', 'db.sqlite3'));
+    console.log("Database filepath is (input paths must be relative to project root): \"" + filePath + "\"");
+    return new sqlite3.Database(filePath);
 }
