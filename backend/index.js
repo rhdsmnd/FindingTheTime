@@ -65,13 +65,15 @@ function isValidQuery(req) {
 function queryDb(interval, start_ts) {
     if (interval == "d") {
         let end_ts = moment(ts).add(1, 'day')
-        let query = `SELECT session.start_ts, session.end_ts, prim_type.name, prim_type.r, prim_type.g, prim_type.b, second_type.name, second_type.r, second_type.g, second_type.b, session.descr
-                        FROM session, prim_type, second_type, color
+        let query = `SELECT session.*, prim_type_expand.*, second_type_expand.*
+                        FROM session
+                        LEFT OUTER JOIN ( 
+                                    SELECT prim_type.* FROM prim_type LEFT OUTER JOIN color ON prim_type.r = color.r AND prim_type.g = color.g AND prim_type.b = color.b
+                            ) prim_type_expand ON session.prime_type_id = prim_type_expand.id
+                        LEFT OUTER JOIN (
+                                    SELECT second_type.* FROM second_type LEFT OUTER JOIN color ON second_type.r = color.r AND second_type.g = color.g AND second_type.b = color.b
+                            ) second_type_expand ON session.second_type_id = second_type_expand.id
                         WHERE session.start_ts > ${start_ts} AND session.end_ts < ${end_ts}
-                            AND session.prim_type_id = prim_type.id
-                            AND session.second_type_id = second_type.id
-                            AND prim_type.r = color.r AND prim_type.g = color.g AND prim_type.b = color.b
-                            AND second_type.r = color.r AND second_type.g = color.g AND second_type.b = color.b
             `;
         return db.all(query)
     } else if (interval == 'w') {
@@ -87,8 +89,6 @@ function queryDb(interval, start_ts) {
 }
 
 function setupDb(filePath) {
-
-
 
     if (filePath == "") {
         try {
