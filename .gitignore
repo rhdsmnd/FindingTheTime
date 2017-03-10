@@ -1,9 +1,11 @@
 bundle.js
 
-db_data/
-
 node_modules/
 *.swp
 *.log
 
 .idea/
+
+db_data/
+
+*.sqlite3

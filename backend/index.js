@@ -26,7 +26,10 @@ app.get("/query", function(req, res) {
         return;
     }
 
-    ret = queryDb(req["interval"], req["date"]);
+    queryDb(req["interval"], req["date"], function(err, data) {
+        console.log(data);
+        res.send(data);
+    });
 
     res.send(ret);
 });
@@ -62,30 +65,39 @@ function isValidQuery(req) {
     return ret;
 }
 
-function queryDb(interval, start_ts) {
+function queryDb(interval, start_ts, end_ts, cb) {
     if (interval == "d") {
         let end_ts = moment(ts).add(1, 'day')
-        let query = `SELECT session.*, prim_type_expand.*, second_type_expand.*
-                        FROM session
-                        LEFT OUTER JOIN ( 
-                                    SELECT prim_type.* FROM prim_type LEFT OUTER JOIN color ON prim_type.r = color.r AND prim_type.g = color.g AND prim_type.b = color.b
-                            ) prim_type_expand ON session.prime_type_id = prim_type_expand.id
-                        LEFT OUTER JOIN (
-                                    SELECT second_type.* FROM second_type LEFT OUTER JOIN color ON second_type.r = color.r AND second_type.g = color.g AND second_type.b = color.b
-                            ) second_type_expand ON session.second_type_id = second_type_expand.id
-                        WHERE session.start_ts > ${start_ts} AND session.end_ts < ${end_ts}
-            `;
-        return db.all(query)
+        let query = `
+            SELECT sessions.*,
+                    prim_type_expand.name AS prim_name, prim_type_expand.r AS prim_r, prim_type_expand.g AS prim_g, prim_type_expand.b AS prim_b,
+                    second_type_expand.name AS sec_name, second_type_expand.r AS sec_r, second_type_expand.g AS sec_g, second_type_expand.b AS sec_b
+            FROM sessions
+            LEFT OUTER JOIN ( 
+                SELECT prim_type.* FROM prim_type LEFT OUTER JOIN colors ON prim_type.r = colors.r AND prim_type.g = colors.g AND prim_type.b = colors.b
+            ) prim_type_expand ON sessions.prim_type_id = prim_type_expand.id
+            LEFT OUTER JOIN (
+                SELECT second_type.* FROM second_type LEFT OUTER JOIN colors ON second_type.r = colors.r AND second_type.g = colors.g AND second_type.b = colors.b
+            ) second_type_expand ON sessions.second_type_id = second_type_expand.id
+            WHERE sessions.start_ts > ${start_ts} AND sessions.end_ts < ${end_ts}
+        `;
+         db.all(query, undefined, cb);
     } else if (interval == 'w') {
-        return [];
+        cb(null, []);
     } else if (interval == 'm') {
-        return [];
+        cb(null, []);
     } else if (interval == 'y') {
-        return [];
+        cb(null, []);
     } else {
-        throw new Error("Invalid interval for queryDb.");
+        cb(new Error("Invalid interval for queryDb."), undefined);
     }
+}
 
+function getSessionsCb(err, rows) {
+    if (err) {
+        console.log(err);
+        return [];
+    }
 }
 
 function setupDb(filePath) {
