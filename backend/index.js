@@ -20,14 +20,52 @@ console.log(db);
 
 var clicks = [];
 
-app.use();
-
-app.post("/update", function(req, res)) {
+var validator = function(req, res, next) {
+    next();
 }
 
-app.post("/create", function(req, res)) {
-
+var routes = {
+    ses : "/sessions",
+    col : "/colors",
+    pri : "/primary_type",
+    sec : "/secondary_type"
 }
+
+app.use(bodyParser.json());
+
+app.use(validator);
+
+app.post(routes["ses"], function(req, res) {
+    res.send("Not implemented");
+});
+
+app.post(routes["pri"], function(req, res) {
+    res.send("Not implemented");
+});
+
+app.put(routes["sec"], function(req, res) {
+    res.send("Not implemented");
+});
+
+app.put(routes["col"], function(req, res) {
+    res.send("Not implemented");
+});
+
+app.delete(routes["ses"], function(req, res) {
+    res.send("Not implemented.")
+});
+
+app.delete(routes["pri"], function(req, res) {
+    res.send("Not implemented.")
+});
+
+app.delete(routes["sec"], function(req, res) {
+    res.send("Not implemented.")
+});
+
+app.delete(routes["col"], function(req, res) {
+    res.send("Not implemented.")
+});
 
 app.get("/query", function(req, res) {
     let validated = isValidQuery(req);
@@ -137,3 +175,6 @@ function setupDb(filePath) {
     console.log("Database filepath is (input paths must be relative to project root): \"" + filePath + "\"");
     return new sqlite3.Database(filePath);
 }
+
+
+
