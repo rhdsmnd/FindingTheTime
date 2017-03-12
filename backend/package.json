@@ -20,6 +20,7 @@
   },
   "scripts": {
     "build": "babel index.js -o bundle.js",
+    "make-test-db": "mkdir -p ./test_data && sqlite3 < ./load_data/sql/test_data.sql",
     "start": "npm run build && node bundle.js",
     "test": "mocha"
   }
