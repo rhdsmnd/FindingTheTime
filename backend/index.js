@@ -1,4 +1,6 @@
 import express from 'express';
+import bodyParser from 'body-parser';
+
 import sqlite3 from 'sqlite3';
 
 import fs from 'fs';
@@ -18,6 +20,14 @@ console.log(db);
 
 var clicks = [];
 
+app.use();
+
+app.post("/update", function(req, res)) {
+}
+
+app.post("/create", function(req, res)) {
+
+}
 
 app.get("/query", function(req, res) {
     let validated = isValidQuery(req);
@@ -63,6 +73,14 @@ function isValidQuery(req) {
     }
 
     return ret;
+}
+
+function isValidUpdate(req) {
+
+}
+
+function isValidCreate(req) {
+
 }
 
 function queryDb(interval, start_ts, end_ts, cb) {
