@@ -31,12 +31,27 @@ var routes = {
     sec : "/secondary_type"
 }
 
+//app.use(bodyParser.urlencoded({ extended: true}));
 app.use(bodyParser.json());
+
+/**
+app.use(function (err, req, res, next) {
+    console.log("--\n" + err + "---\n");
+    next();
+})
+ */
 
 app.use(validator);
 
+// make sure requests have content type: application/json, and not application/x-www-form-urlencoded
+
 app.post(routes["ses"], function(req, res) {
-    res.send("Not implemented");
+    console.log(req.body);
+    console.log(req.get("Content-Type"));
+    console.log("called");
+
+    console.log(req.body['asdf']);
+    res.send(req.body);
 });
 
 app.post(routes["pri"], function(req, res) {
@@ -87,7 +102,7 @@ app.get('/', function(req, res) {
 });
 
 
-app.listen(2999, function() {
+app.listen(2999, "192.168.1.105", undefined, function() {
     console.log("Web server started.")
 });
 
