@@ -32,125 +32,7 @@ var validator = function(req, res, next) {
 }
 
 var routes = {
-    ses : {
-        "path" : "/sessions",
-        "POST" : {
-            "validate" : function(req, res, next) {
-                let body = req["body"];
-
-                let isUpdate;
-                if (body.hasOwnProperty("update")) {
-                    isUpdateStr = body["update"];
-                    if (isUpdateStr == "t" || "f") {
-                        isUpdate = isUpdateStr == "t" ? true : false;
-                    } else {
-                        throw new Error("Invalid value for \"update\" key: must be \"t\" or \"f\"");
-                    }
-                } else {
-                    throw new Error("Must indicate if creating or updating session");
-                }
-
-                let startTs;
-                let endTs;
-
-                    tsValidate = new Promise(function(resolve, reject) {
-                        if (!body.hasOwnProperty("start_ts")) {
-                            throw new Error("Must have start timestamp property.");
-                        } else if (isNaN(parseInt(body["start_ts"]))) {
-                            throw new Error("Start timestamp is not valid");
-                        }
-
-                        if (!body.hasOwnProperty("end_ts")) {
-                            if (isUpdate)
-                        }
-
-                        db.all("")
-                    });
-                    let typeIdValidate = function (isPrimType) { return new Promise(function(resolve, reject) {
-
-                    })};
-
-                    let endTs = body["end_ts"], primTypeId = body["prim_type_id"],
-                        secTypeId = body["sec_type_id"], descr = body["descr"];
-
-
-
-                startTs = body["start_ts"];
-                if (!isValidTs(startTs)) {
-                    throw new Error("Start timestamp is invalid.");
-                }
-
-
-
-                if (isUpdate) {
-                    let query = `SELECT * FROM sessions WHERE session.start_ts = ${startTs}`;
-                    db.all(query, undefined, function() {
-
-                    })
-                } else {
-                    let endTs;
-                    if (body.hasOwnProperty("end_ts")) {
-                        endTs = body["end_ts"];
-                        if (!isValidTs(endTs)) {
-                            throw new Error("End timestamp is invalid.");
-                        }
-                    } else {
-                        let dayEnd = moment(startTs);
-
-                        dayEnd.seconds(59);
-                        dayEnd.hours(23);
-
-                        endTs = dayEnd.unix();
-                    }
-                    let timeConflictQuery = `SELECT * FROM sessions
-                                    WHERE
-                                        sessions.start_ts > ${startTs} AND sessions.start_ts < ${endTs}
-                                      OR
-                                        sessions.end_ts > ${startTs} AND sessions.end_ts < ${endTs}
-                    `;
-
-                    let
-
-                    db.all(timeConflictQuery, undefined, function (err, arr) {
-                        if (err) {
-                            throw new Error("Error querying database.");
-                        } else {
-                            if (arr.length > 0) {
-                                throw new Error("Time conflict with another session.");
-                            }
-                        }
-
-                        if (!body.hasOwnProperty("prim_type") || !isNan(parseInt(body["prim_type"]))) {
-                            throw new Error("Primary type id is not valid.");
-                        }
-
-                        let primTypeQuery = `SELECT * FROM prim_type WHERE prim_type.id = ${body["prim_type"]}`;
-
-                        db.get(primTypeQuery, undefined, function(err, row) {
-                            if (err) {
-                                throw new Error("Error retrieving primary type");
-                            }
-
-                        });
-                    })
-                }
-                if (body.hasOwnProperty("prim_type_id")) {
-
-                }
-
-                if (!update) {
-                    if (!body.hasOwnProperty("prim_type_id")) {
-                        throw new Error("New session must have primary type.");
-                    }
-
-                    primTypeId =
-
-
-                }
-            }
-
-        }
-    },
+    ses : "/sessions",
     col : "/colors",
     pri : "/primary_type",
     sec : "/secondary_type"
@@ -173,14 +55,17 @@ app.put(routes["ses"], function(req, res, next) {
 
     let startTs;
     if (!body.hasOwnProperty("start_ts")) {
-        throw new Error("New session must have start timestamp.");
+        res.status(400).send(JSON.stringify(new Error("New session must have start timestamp.")));
+        return;
     } else if (isNaN(parseInt(body["start_ts"]))) {
-        throw new Error("Start timestamp must be an integer.");
+        res.status(400).send(JSON.stringify(new Error("Start timestamp must be an integer.")));
+        return;
     } else {
         startTs = parseInt(body["start_ts"]);
 
         if (startTs < MIN_TS || startTs > moment().unix()) {
-            throw new Error("Timestamp out of range.");
+            res.status(400).send(JSON.stringify(new Error("Timestamp out of range.")));
+            return;
         }
     }
 
@@ -188,23 +73,28 @@ app.put(routes["ses"], function(req, res, next) {
     if (!body.hasOwnProperty("end_ts")) {
         endTs = null;
     } else if (isNaN(parseInt(body["end_ts"]))) {
-        throw new Error("End timestamp must be an integer.");
+        res.status(400).send(JSON.stringify(new Error("End timestamp must be an integer.")));
+        return;
     } else {
         endTs = parseInt(body["start_ts"]);
 
         if (endTs > moment().unix()) {
-            throw new Error("End timestamp cannot be in the future.");
+            res.status(400).send(JSON.stringify(new Error("End timestamp cannot be in the future.")));
+            return;
         } else if (endTs < startTs) {
-            throw new Error("End timestamp must be greater than the start timestamp.");
+            res.status(400).send(JSON.stringify(new Error("End timestamp must be greater than the start timestamp.")));
+            return;
         }
 
     }
 
     let primTypeId;
     if (!body.hasOwnProperty("prim_type")) {
-        throw new Error("Session must have primary type.");
+        res.status(400).send(JSON.stringify(new Error("Session must have primary type.")));
+        return;
     } else if (isNaN(parseInt(body["prim_type"]))) {
-        throw new Error("Primary type must be an integer.");
+        res.status(400).send(JSON.stringify(new Error("Primary type must be an integer.")));
+        return;
     } else {
         primTypeId = parseInt(body["prim_type"]);
     }
@@ -212,7 +102,8 @@ app.put(routes["ses"], function(req, res, next) {
     let secTypeId;
     if (body.hasOwnProperty("sec_type")) {
         if (isNaN(parseInt(body["second_type"]))) {
-            throw new Error("Secondary type must be an integer.");
+            res.status(400).send(JSON.stringify(new Error("Secondary type must be an integer.")));
+            return;
         } else {
             secTypeId = parseInt(body["second_type"]);
         }
@@ -229,47 +120,119 @@ app.put(routes["ses"], function(req, res, next) {
     // now check the values
 
     let checkTsConflict = new Promise(function(resolve, reject) {
-        let trueEnd = endTs == null ? moment.unix(startTs).seconds(59).hours(23) : endTs;
+        let trueEnd = endTs == null ? moment.unix(): endTs;
         let dayStart = moment.unix(startTs).seconds(0).hours(0);
 
 
-        // grab all sessions where
-        //  1) existing sessions have a start timestamp in the new session
-        //  2) existing sessions have an end timestamp in the new session
-        //  3) there is an active session conflicting with the new session
+        // grab
+        //  1) existing sessions that have a start timestamp in the new session
+        //  2) existing sessions that have an end timestamp in the new session
+        //  3) existing sessions that contain the timestamps of the new session
+        //  4) the active session (end timestamp is null) if it exists
         let queryTs = `SELECT session.start_ts, session.end_ts FROM sessions
-                        WHERE session.start_ts > ${startTs} AND session.start_ts < ${trueEnd}
-                        OR    session.end_ts > ${startTs} AND session.end_ts < ${trueEnd}
-                        OR    session.end_ts IS NULL AND session.start_ts <= ${trueEnd})`;
+                        WHERE session.start_ts >= ${startTs} AND session.start_ts <= ${trueEnd}
+                        OR    session.end_ts >= ${startTs} AND session.end_ts <= ${trueEnd}
+                        OR    session.start_ts <= ${startTs} AND session.end_ts >= ${trueEnd}
+                        OR    session.end_ts IS NULL`;
 
-        db.get(queryTs, undefined, function(err, row) {
+        db.all(queryTs, undefined, function(err, rows) {
             if (err) {
-                console.log("Error querying database for conflicting timestamps.");
-                throw err;
-            } else if (row) {
-                throw new Error(`Conflicting timestamp exists: [${row.start_ts},${row.end_ts}]`);
+                console.log(`Error querying database:\n${err}`);
+                res.status(500).send(JSON.stringify(new Error("Error querying database for conflicting timestamps.")));
+                return;
+            }
+
+            for (let i = 0; i < rows.length; i += 1) {
+                dbRow = rows[i];
+
+
+                if (endTs == null && dbRow["end_ts"] == null) {
+                    res.status(400).send(JSON.stringify(new Error("Cannot start a new active session: end current session first.")));
+                    return;
+                }
+
+                dbTrueEnd =  dbRow["end_ts"] == null ? moment.unix() : dbRow["end_ts"];
+
+                if (dbRow["end_ts"] == null && endTs >= dbRow["start_ts"]) {
+                    res.status(400).send(JSON.stringify(new Error("New session conflicts with the active session.")));
+                    return;
+                } else if (dbRow["start_ts"] >= startTs && dbRow["start_ts"] <= trueEnd
+                            || dbTrueEnd >= startTs && dbTrueEnd <= trueEnd
+                            || dbRow["start_ts"] <= startTs && dbTrueEnd >= trueEnd) {
+                    res.status(400).send(JSON.stringify(new Error("New session conflicts with an existing session")));
+                    return;
+                }
+            }
+            resolve();
+        });
+    });
+
+    let checkPrimTypeId = new Promise(function(resolve, reject) {
+        let queryPrimType = `SELECT prim_type.id FROM prim_type WHERE prim_type.id = ${primTypeId}`;
+        db.get(queryPrimType, undefined, function(err, row) {
+            if (err) {
+                console.log(`Error retrieving prim_type with id\n ${err}`);
+                res.status(500).send(JSON.stringify(new Error("Error connecting to database.")));
+                return;
+            } else if (!row) {
+                res.status(400).send(JSON.stringify(new Error("Primary type does not exist.")));
+                return;
             } else {
                 resolve();
             }
         });
     });
 
-    let checkPrimTypeId = new Promise(function(resolve, reject) {
-        resolve(null);
-    });
-
     let checkSecTypeId = new Promise(function(resolve, reject) {
-        resolve(null);
+        if (secTypeId == null) {
+            resolve();
+        }
+
+        let querySecType = `SELECT prim_type.id from second_type WHERE second_type.id = ${secTypeId}`;
+        db.get(querySecType, undefined, function(err, row) {
+            if (err) {
+                console.log(`Error retrieving second_type with id\n ${err}`);
+                res.status(500).send(JSON.stringify(new Error("Error connecting to database.")));
+                return;
+            } else if (!row) {
+                res.status(400).send(JSON.stringify(new Error("Secondary type does not exist.")));
+                return;
+            } else {
+                resolve();
+            }
+        });
     });
 
 
     Promise.all([checkTsConflict, checkPrimTypeId,
                 checkSecTypeId]).then(function(dataValues) {
+        req["parsed_session"] = {
+            "start_ts" : startTs,
+            "end_ts" : endTs,
+            "prim_type" : primTypeId,
+            "sec_type" : secTypeId,
+            "descr" : descr
+        };
         next();
     });
 
 }, function(req, res) {
+    let sessionObj = req["parsed_session"];
 
+    let insertQuery = `
+            INSERT INTO session(start_ts, end_ts, prim_type_id, second_type_id, descr) VALUES
+                (${sessionObj["start_ts"]}, ${sessionObj["end_ts"]}, ${sessionObj["prim_type_id"]},
+                    ${sessionObj["second_type_id"]}, ${sessionObj["descr"]});
+    `;
+
+    db.run(insertQuery, undefined, function(err) {
+        if (err) {
+            throw err;
+        }
+
+        sessionObj["id"] = this.lastID;
+        res.status(200).send(JSON.stringify(sessionObj));
+    });
 });
 
 app.post(routes["ses"], function(req, res) {
