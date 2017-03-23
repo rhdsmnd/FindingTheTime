@@ -1,10 +1,10 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-
 import sqlite3 from 'sqlite3';
-
 import fs from 'fs';
 import path from 'path';
+
+import projConsts from '../src/constants';
 
 
 // Jan. 1st, 2016
@@ -16,14 +16,6 @@ const MAX_TS = 2051251200
 var app = express();
 
 var db;
-if (process.argv.length == 3) {
-    db = setupDb(process.argv[2]);
-} else {
-    db = setupDb("");
-}
-
-console.log(db);
-
 
 var clicks = [];
 
@@ -42,7 +34,7 @@ var routes = {
 app.use(bodyParser.json());
 
 /**
-app.use(function (err, req, res, next) {
+ app.use(function (err, req, res, next) {
     console.log("--\n" + err + "---\n");
     next();
 })
@@ -157,8 +149,8 @@ app.put(routes["ses"], function(req, res, next) {
                     res.status(400).send(JSON.stringify(new Error("New session conflicts with the active session.")));
                     return;
                 } else if (dbRow["start_ts"] >= startTs && dbRow["start_ts"] <= trueEnd
-                            || dbTrueEnd >= startTs && dbTrueEnd <= trueEnd
-                            || dbRow["start_ts"] <= startTs && dbTrueEnd >= trueEnd) {
+                    || dbTrueEnd >= startTs && dbTrueEnd <= trueEnd
+                    || dbRow["start_ts"] <= startTs && dbTrueEnd >= trueEnd) {
                     res.status(400).send(JSON.stringify(new Error("New session conflicts with an existing session")));
                     return;
                 }
@@ -205,7 +197,7 @@ app.put(routes["ses"], function(req, res, next) {
 
 
     Promise.all([checkTsConflict, checkPrimTypeId,
-                checkSecTypeId]).then(function(dataValues) {
+        checkSecTypeId]).then(function(dataValues) {
         req["parsed_session"] = {
             "start_ts" : startTs,
             "end_ts" : endTs,
@@ -289,11 +281,6 @@ app.get('/', function(req, res) {
     res.send("Hello world!");
 });
 
-
-app.listen(2999, "0.0.0.0", undefined, function() {
-    console.log("Web server started.")
-});
-
 // unit test
 function isValidQuery(req) {
     let queryObj = req.query;
@@ -302,7 +289,7 @@ function isValidQuery(req) {
         errorMessage = "Missing query keys: should have entries for \'interval\' and \'date\'";
     } else if (!(queryObj["interval"].match(/^[dwmy]$/) && queryObj["date"].match(/^\d+$/))) {
         errorMessage = "Invalid values in query string: interval should be one of 'd', 'm', 'w', 'y' " +
-                "and date should be a unix timestamp.";
+            "and date should be a unix timestamp.";
     }
 
     let ret = {};
@@ -340,7 +327,7 @@ function queryDb(interval, start_ts, end_ts, cb) {
             ) second_type_expand ON sessions.second_type_id = second_type_expand.id
             WHERE sessions.start_ts > ${start_ts} AND sessions.end_ts < ${end_ts}
         `;
-         db.all(query, undefined, cb);
+        db.all(query, undefined, cb);
     } else if (interval == 'w') {
         cb(null, []);
     } else if (interval == 'm') {
@@ -370,7 +357,7 @@ function setupDb(filePath) {
                 throw err;
             }
         }
-        filePath = path.join(__dirname, 'db_data', 'db.sqlite3');
+        filePath = projConsts["DB_FILE"];
     } else {
         filePath = path.join(__dirname, filePath);
     }
@@ -385,5 +372,17 @@ function isValidTs(ts) {
     return !isNan(tsVal) && tsVal < moment().unix() && tsVal > 	1451606400
 }
 
+app.start = function(dbPath, cb) {
+    if (dbPath) {
+        db = setupDb("../" + dbPath);
+    } else {
+        db = setupDb("");
+    }
 
+    console.log(db);
 
+    return app.listen(2999, "0.0.0.0", undefined, cb);
+
+}
+
+module.exports = app;

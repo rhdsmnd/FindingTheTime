@@ -1,5 +1,5 @@
-bundle.js
-test_bundle.js
+bundle_*.js
+transpiled/
 
 node_modules/
 *.swp
@@ -8,5 +8,6 @@ node_modules/
 .idea/
 
 db_data/
+test_db_data/
 
 *.sqlite3

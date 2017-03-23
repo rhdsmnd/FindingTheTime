@@ -1,5 +1,9 @@
+var app = require('../transpiled/bundle_app');
+var server;
+
 var sqlite3 = require('sqlite3');
 
+var fs = require('fs');
 const childProcess = require('child_process');
 
 
@@ -22,6 +26,7 @@ var db;
 describe('Routes', function() {
 
     before(function(done) {
+
         // set up database
         new Promise(function(resolve, reject) {
             console.log("Running promise");
@@ -34,7 +39,7 @@ describe('Routes', function() {
             });
 
         }).then(function() {
-            done();
+            server = app.start(DB_PATH, done);
         }, function(err) {
             console.log("Error opening database");
             done(err);
@@ -42,15 +47,22 @@ describe('Routes', function() {
         // start server
     });
 
-    after(function() {
+    after(function(done) {
+
+        this.timeout(10000);
+        //stop server
+        server.close();
+
         // delete database
         db.close();
-        //stop server
+
     });
 
 
     describe('Sanity test', function() {
         it('should pass', function() {
+            this.timeout(10000);
+
             let asyncProm = new Promise(function(resolve, reject) {
                 resolve("foo");
             });
