@@ -1,4 +1,4 @@
-import app from "../transpiled/bundle_app";
+import app from "./app";
 
 function listenCb() {
     console.log("Web server started.");

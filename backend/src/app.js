@@ -4,7 +4,7 @@ import sqlite3 from 'sqlite3';
 import fs from 'fs';
 import path from 'path';
 
-import projConsts from '../src/constants';
+import projConsts from '../constants';
 
 
 // Jan. 1st, 2016

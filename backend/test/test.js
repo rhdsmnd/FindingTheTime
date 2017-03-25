@@ -1,14 +1,16 @@
-var app = require('../transpiled/bundle_app');
+var app = require('../transpiled/app');
+
 var server;
 
 var sqlite3 = require('sqlite3');
 
 var fs = require('fs');
-const childProcess = require('child_process');
+var childProc = require('child_process');
 
 
 var chai = require('chai');
 var chaiAsPromised = require('chai-as-promised');
+var chaiHttp = require('chai-http');
 chai.use(chaiAsPromised);
 chai.should();
 
@@ -19,12 +21,14 @@ var expect = require('chai').expect;
 
 const SERVER_START_MESSAGE = "Web server started.";
 
+console.log(__dirname);
+
 // run from 'npm test', so current directory is backend root
-const DB_PATH = "./test_db_data/route_test_db.sqlite3";
+const DB_PATH = "./test_db_data/test_db.sqlite3";
 
-var db;
+
 describe('Routes', function() {
-
+    var db;
     before(function(done) {
 
         // set up database
@@ -44,7 +48,6 @@ describe('Routes', function() {
             console.log("Error opening database");
             done(err);
         });
-        // start server
     });
 
     after(function(done) {
@@ -54,8 +57,14 @@ describe('Routes', function() {
         server.close();
 
         // delete database
-        db.close();
-
+        db.close(function(err) {
+            if (!err) {
+                done();
+            } else {
+                console.log(err);
+                throw new Error("Couldn't close database connection.");
+            }
+        });
     });
 
 
