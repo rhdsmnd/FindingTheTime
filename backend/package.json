@@ -10,6 +10,7 @@
     "chai-http": "^3.0.0",
     "express": "^4.14.1",
     "gulp": "^3.9.1",
+    "moment": "^2.18.1",
     "pg-promise": "^5.5.8",
     "sqlite3": "^3.1.8"
   },
@@ -20,6 +21,7 @@
     "babel-preset-es2017": "^6.22.0",
     "chai": "^3.5.0",
     "chai-as-promised": "^6.0.0",
+    "gulp": "^3.9.1",
     "gulp-babel": "^6.1.2",
     "gulp-clean": "^0.3.2",
     "gulp-cli": "^1.2.2",
@@ -33,7 +35,7 @@
   },
   "scripts": {
     "build": "gulp build",
-    "make-test-db": "sqlite3 ./test_db_data/test_db.sqlite3 < ./load_data/sql/test_data.sql",
+    "make-test-db": "sqlite3 ./test_db_data/test_db.sqlite3 < ./load_data/sql/init_model.sql && sqlite3 ./test_db_data/test_db.sqlite3 < ./load_data/sql/test_data.sql",
     "start": "npm run build && node ./transpiled/index.js",
     "test": "npm run build && npm run make-test-db && mocha && node ./misc/del.js ./test_db_data/test_db.sqlite3"
   }

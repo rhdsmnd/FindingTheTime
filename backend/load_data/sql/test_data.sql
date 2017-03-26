@@ -66,6 +66,12 @@ INSERT INTO colors(r, g, b) VALUES (108,78,80);
 INSERT INTO colors(r, g, b) VALUES (221,181,187);
 INSERT INTO colors(r, g, b) VALUES (234,62,122);
 
+
+-- coding
+-- hobbies
+-- exercise
+-- free time
+
 -- insert primary types --
 INSERT INTO prim_type(name, r, g, b)
     VALUES("coding", 179, 161, 131);
@@ -75,6 +81,16 @@ INSERT INTO prim_type(name, r, g, b)
     VALUES("exercise", 80, 57, 49);
 INSERT INTO prim_type(name, r, g, b)
     VALUES("free time", 180, 176, 173);
+
+
+--database
+--web server
+--writing
+--composing
+--tempo run
+--long run
+--overwatch
+--video games
 
 -- insert secondary types --
 INSERT INTO second_type(name, r, g, b, prim_type_id)
@@ -103,7 +119,7 @@ INSERT INTO second_type(name, r, g, b, prim_type_id)
             prim_type.id FROM prim_type WHERE prim_type.name="free time"));
 
 
--- 8:00 am
+-- 3/6/2016, 8:00 am
 -- 1457251200
 
 --1457251200, 1457251500
@@ -119,6 +135,13 @@ INSERT INTO second_type(name, r, g, b, prim_type_id)
 
 -- 11:59 pm
 -- 1457308799
+
+-- 6/30/2016, 2:50pm
+--1467298200
+
+--1467298200, 1467300000
+
+--1467305000, 1467325000
 
 INSERT INTO sessions(start_ts, end_ts, descr, prim_type_id, second_type_id) VALUES
     (
@@ -154,5 +177,25 @@ INSERT INTO sessions(start_ts, end_ts, descr, prim_type_id, second_type_id) VALU
         "",
         (SELECT prim_type.id FROM prim_type WHERE prim_type.name="free time"),
         (SELECT second_type.id FROM second_type WHERE second_type.name="overwatch")
+    );
+
+
+
+INSERT INTO sessions(start_ts, end_ts, descr, prim_type_id, second_type_id) VALUES
+    (
+        1467298200,
+        1467300000,
+        "",
+        (SELECT prim_type.id FROM prim_type WHERE prim_type.name="coding"),
+        (SELECT second_type.id FROM second_type WHERE second_type.name="web server")
+    );
+
+INSERT INTO sessions(start_ts, end_ts, descr, prim_type_id, second_type_id) VALUES
+    (
+        1467305000,
+        1467325000,
+        "",
+        (SELECT prim_type.id FROM prim_type WHERE prim_type.name="hobbies"),
+        (SELECT second_type.id FROM second_type WHERE second_type.name="writing")
     );
 

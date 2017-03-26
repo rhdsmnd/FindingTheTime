@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS second_type(
     FOREIGN KEY(prim_type_id) REFERENCES prim_type(id)
 );
 
-CREATE TABLE IF NOT EXISTS session(
+CREATE TABLE IF NOT EXISTS sessions(
     id INTEGER PRIMARY KEY ASC AUTOINCREMENT,
     start_ts INTEGER,
     end_ts INTEGER,

@@ -3,6 +3,7 @@ import bodyParser from 'body-parser';
 import sqlite3 from 'sqlite3';
 import fs from 'fs';
 import path from 'path';
+import moment from 'moment';
 
 import projConsts from '../constants';
 
@@ -262,6 +263,9 @@ app.delete(routes["col"], function(req, res) {
     res.send("Not implemented.")
 });
 
+/**
+ * Expects a query string with interval & date key values.
+ */
 app.get("/query", function(req, res) {
     let validated = isValidQuery(req);
     if (!validated.success) {
@@ -269,12 +273,12 @@ app.get("/query", function(req, res) {
         return;
     }
 
-    queryDb(req["interval"], req["date"], function(err, data) {
-        console.log(data);
+    queryDb(req.query["interval"], req.query["date"], function(err, data) {
+        if (!data) {
+            data = "[]";
+        }
         res.send(data);
     });
-
-    res.send(ret);
 });
 
 app.get('/', function(req, res) {
@@ -286,7 +290,7 @@ function isValidQuery(req) {
     let queryObj = req.query;
     let errorMessage = "";
     if (!(queryObj.hasOwnProperty("interval") && queryObj.hasOwnProperty("date"))) {
-        errorMessage = "Missing query keys: should have entries for \'interval\' and \'date\'";
+        errorMessage = "Missing query keys: should have entries for 'interval' and 'date'";
     } else if (!(queryObj["interval"].match(/^[dwmy]$/) && queryObj["date"].match(/^\d+$/))) {
         errorMessage = "Invalid values in query string: interval should be one of 'd', 'm', 'w', 'y' " +
             "and date should be a unix timestamp.";
@@ -311,13 +315,18 @@ function isValidCreate(req) {
 
 }
 
-function queryDb(interval, start_ts, end_ts, cb) {
+function queryDb(interval, ts, cb) {
     if (interval == "d") {
-        let end_ts = moment.unix(ts).add(1, 'day')
+        let day = moment.unix(ts).hours(0).minutes(0).seconds(0);
+
+        let startTs = day.unix();
+
+        let endTs = day.add(1, 'day').unix();
+
         let query = `
             SELECT sessions.*,
-                    prim_type_expand.id AS prim_id, prim_type_expand.name AS prim_name, prim_type_expand.r AS prim_r, prim_type_expand.g AS prim_g, prim_type_expand.b AS prim_b,
-                    second_type_expand.id AS second_id, second_type_expand.name AS sec_name, second_type_expand.r AS sec_r, second_type_expand.g AS sec_g, second_type_expand.b AS sec_b
+                    prim_type_expand.name AS prim_name, prim_type_expand.r AS prim_r, prim_type_expand.g AS prim_g, prim_type_expand.b AS prim_b,
+                    second_type_expand.name AS sec_name, second_type_expand.r AS sec_r, second_type_expand.g AS sec_g, second_type_expand.b AS sec_b
             FROM sessions
             LEFT OUTER JOIN ( 
                 SELECT prim_type.* FROM prim_type LEFT OUTER JOIN colors ON prim_type.r = colors.r AND prim_type.g = colors.g AND prim_type.b = colors.b
@@ -325,7 +334,7 @@ function queryDb(interval, start_ts, end_ts, cb) {
             LEFT OUTER JOIN (
                 SELECT second_type.* FROM second_type LEFT OUTER JOIN colors ON second_type.r = colors.r AND second_type.g = colors.g AND second_type.b = colors.b
             ) second_type_expand ON sessions.second_type_id = second_type_expand.id
-            WHERE sessions.start_ts > ${start_ts} AND sessions.end_ts < ${end_ts}
+            WHERE sessions.start_ts >= ${startTs} AND sessions.end_ts < ${endTs}
         `;
         db.all(query, undefined, cb);
     } else if (interval == 'w') {
@@ -362,7 +371,6 @@ function setupDb(filePath) {
         filePath = path.join(__dirname, filePath);
     }
 
-    console.log("Database filepath is (input paths must be relative to project root): \"" + filePath + "\"");
     return new sqlite3.Database(filePath);
 }
 
@@ -379,8 +387,7 @@ app.start = function(dbPath, cb) {
         db = setupDb("");
     }
 
-    console.log(db);
-
+    console.log("Starting with database at : " + dbPath);
     return app.listen(2999, "0.0.0.0", undefined, cb);
 
 }

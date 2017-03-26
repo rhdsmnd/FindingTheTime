@@ -12,6 +12,7 @@ var chai = require('chai');
 var chaiAsPromised = require('chai-as-promised');
 var chaiHttp = require('chai-http');
 chai.use(chaiAsPromised);
+chai.use(chaiHttp);
 chai.should();
 
 /**
@@ -33,7 +34,6 @@ describe('Routes', function() {
 
         // set up database
         new Promise(function(resolve, reject) {
-            console.log("Running promise");
 
             db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, function(err) {
                 if (err) {
@@ -68,6 +68,7 @@ describe('Routes', function() {
     });
 
 
+    /**
     describe('Sanity test', function() {
         it('should pass', function() {
             this.timeout(10000);
@@ -79,12 +80,16 @@ describe('Routes', function() {
             return asyncProm.should.eventually.equal("foo");
         });
     });
+     */
 
-    describe('GET /query', function() {
+    describe('GET /query', function(done) {
         it("should return JSON of session data.", function() {
-
-            // NOT IMPLEMENTED
-            return Promise.resolve(1).should.eventually.equal(1);
+            chai.request("http://localhost:2999")
+                .get("/query?interval=d&date=1457251200")
+                .end(function(err, res) {
+                    console.log(res.body);
+                    done();
+                });
         });
     });
 
