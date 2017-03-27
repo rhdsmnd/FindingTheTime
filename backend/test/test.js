@@ -17,15 +17,15 @@ chai.should();
 
 /**
 var assert = require('assert');
+ */
 var expect = require('chai').expect;
-*/
 
 const SERVER_START_MESSAGE = "Web server started.";
 
 console.log(__dirname);
 
 // run from 'npm test', so current directory is backend root
-const DB_PATH = "./test_db_data/test_db.sqlite3";
+const DB_PATH = "./test_db/test_db.sqlite3";
 
 
 describe('Routes', function() {
@@ -83,11 +83,25 @@ describe('Routes', function() {
      */
 
     describe('GET /query', function(done) {
-        it("should return JSON of session data.", function() {
+        it("should return JSON of session data.", function(done) {
+
+            clearSessions(db);
+
+            db.run(`INSERT INTO sessions(start_ts, end_ts, descr, prim_type_id, second_type_id) VALUES
+                    (
+                        1457251200,
+                        1457251500,
+                        "",
+                        (SELECT prim_type.id FROM prim_type WHERE prim_type.name="coding"),
+                        (SELECT second_type.id FROM second_type WHERE second_type.name="web server")
+                    );
+            `);
+
             chai.request("http://localhost:2999")
                 .get("/query?interval=d&date=1457251200")
                 .end(function(err, res) {
-                    console.log(res.body);
+                    expect(res).to.have.status(200);
+                    expect(res.body.length == 1).to.be.true;
                     done();
                 });
         });
@@ -102,3 +116,19 @@ describe('Routes', function() {
     });
 
 });
+
+function clearSessions(dbConnection) {
+    dbConnection.run("DELETE FROM sessions");
+}
+
+function loadColors() {
+    db.run('INSERT INTO colors(r, g, b) VALUES (179,161,131)');
+    db.run('INSERT INTO colors(r, g, b) VALUES (174,142,94)');
+    db.run('INSERT INTO colors(r, g, b) VALUES (80,57,49)');
+    db.run('INSERT INTO colors(r, g, b) VALUES (180,176,173)');
+    db.run('INSERT INTO colors(r, g, b) VALUES (185,187,226)');
+    db.run('INSERT INTO colors(r, g, b) VALUES (59,40,96)');
+    db.run('INSERT INTO colors(r, g, b) VALUES (33,64,95)');
+    db.run('INSERT INTO colors(r, g, b) VALUES (107,143,221)');
+
+}

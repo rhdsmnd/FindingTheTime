@@ -13,3 +13,4 @@ gulp.task('build', function() {
         .pipe(babel({"presets": [["env", {"targets": {"node" : "current"}}]]}))
         .pipe(gulp.dest('transpiled'));
 });
+

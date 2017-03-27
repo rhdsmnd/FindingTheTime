@@ -359,7 +359,7 @@ function setupDb(filePath) {
 
     if (filePath == "") {
         try {
-            fs.mkdirSync(path.join(__dirname, 'db_data'));
+            fs.mkdirSync(projConsts["DB_DIR"]);
         } catch (err) {
             if (err["code"] != "EEXIST") {
                 console.log(err);
