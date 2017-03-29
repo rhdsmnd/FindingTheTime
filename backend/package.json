@@ -36,7 +36,7 @@
   "scripts": {
     "build": "gulp build",
     "build-test": "gulp build-test",
-    "make-test-db": "sqlite3 ./test_db/test_db.sqlite3 < ./load_data/sql/init_model.sql",
+    "make-test-db": "sqlite3 ./test_db/test_db.sqlite3 < ./load_data/sql/init_model.sql && sqlite3 ./test_db/test_db.sqlite3 < ./load_data/sql/test_data.sql",
     "make-perm-test-db": "sqlite3 ./test_db/perm_test_db.sqlite3 < ./load_data/sql/init_model.sql && sqlite3 ./test_db/perm_test_db.sqlite3 < ./load_data/sql/test_data.sql",
     "start": "npm run build && node ./transpiled/index.js",
     "test": "npm run build && node ./misc/del.js ./test_db/test_db.sqlite3 && npm run make-test-db && mocha && node ./misc/del.js ./test_db/test_db.sqlite3"

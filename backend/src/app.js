@@ -8,11 +8,11 @@ import moment from 'moment';
 import projConsts from '../constants';
 
 
-// Jan. 1st, 2016
+// Jan. 1st, 2016: 8am
 const MIN_TS = 1451635200;
 
-// Jan. 1st, 2035
-const MAX_TS = 2051251200
+// Jan. 1st, 2035: 8am
+const MAX_TS = 2051251200;
 
 var app = express();
 
@@ -48,16 +48,17 @@ app.put(routes["ses"], function(req, res, next) {
 
     let startTs;
     if (!body.hasOwnProperty("start_ts")) {
-        res.status(400).send(JSON.stringify(new Error("New session must have start timestamp.")));
+        res.status(400).send("New session must have start timestamp.");
         return;
     } else if (isNaN(parseInt(body["start_ts"]))) {
-        res.status(400).send(JSON.stringify(new Error("Start timestamp must be an integer.")));
+        res.status(400).send("Start timestamp must be an integer.");
         return;
     } else {
         startTs = parseInt(body["start_ts"]);
 
         if (startTs < MIN_TS || startTs > moment().unix()) {
-            res.status(400).send(JSON.stringify(new Error("Timestamp out of range.")));
+            console.log(startTs);
+            res.status(400).send("Timestamp out of range.");
             return;
         }
     }
@@ -66,16 +67,16 @@ app.put(routes["ses"], function(req, res, next) {
     if (!body.hasOwnProperty("end_ts")) {
         endTs = null;
     } else if (isNaN(parseInt(body["end_ts"]))) {
-        res.status(400).send(JSON.stringify(new Error("End timestamp must be an integer.")));
+        res.status(400).send("End timestamp must be an integer.");
         return;
     } else {
         endTs = parseInt(body["start_ts"]);
 
         if (endTs > moment().unix()) {
-            res.status(400).send(JSON.stringify(new Error("End timestamp cannot be in the future.")));
+            res.status(400).send("End timestamp cannot be in the future.");
             return;
         } else if (endTs < startTs) {
-            res.status(400).send(JSON.stringify(new Error("End timestamp must be greater than the start timestamp.")));
+            res.status(400).send("End timestamp must be greater than the start timestamp.");
             return;
         }
 
@@ -83,10 +84,10 @@ app.put(routes["ses"], function(req, res, next) {
 
     let primTypeId;
     if (!body.hasOwnProperty("prim_type")) {
-        res.status(400).send(JSON.stringify(new Error("Session must have primary type.")));
+        res.status(400).send("Session must have primary type.");
         return;
     } else if (isNaN(parseInt(body["prim_type"]))) {
-        res.status(400).send(JSON.stringify(new Error("Primary type must be an integer.")));
+        res.status(400).send("Primary type must be an integer.");
         return;
     } else {
         primTypeId = parseInt(body["prim_type"]);
@@ -94,11 +95,11 @@ app.put(routes["ses"], function(req, res, next) {
 
     let secTypeId;
     if (body.hasOwnProperty("sec_type")) {
-        if (isNaN(parseInt(body["second_type"]))) {
-            res.status(400).send(JSON.stringify(new Error("Secondary type must be an integer.")));
+        if (isNaN(parseInt(body["sec_type"]))) {
+            res.status(400).send("Secondary type must be an integer.");
             return;
         } else {
-            secTypeId = parseInt(body["second_type"]);
+            secTypeId = parseInt(body["sec_type"]);
         }
     } else {
         secTypeId = null;
@@ -122,16 +123,16 @@ app.put(routes["ses"], function(req, res, next) {
         //  2) existing sessions that have an end timestamp in the new session
         //  3) existing sessions that contain the timestamps of the new session
         //  4) the active session (end timestamp is null) if it exists
-        let queryTs = `SELECT session.start_ts, session.end_ts FROM sessions
-                        WHERE session.start_ts >= ${startTs} AND session.start_ts <= ${trueEnd}
-                        OR    session.end_ts >= ${startTs} AND session.end_ts <= ${trueEnd}
-                        OR    session.start_ts <= ${startTs} AND session.end_ts >= ${trueEnd}
-                        OR    session.end_ts IS NULL`;
+        let queryTs = `SELECT sessions.start_ts, sessions.end_ts FROM sessions
+                        WHERE sessions.start_ts >= ${startTs} AND sessions.start_ts <= ${trueEnd}
+                        OR    sessions.end_ts >= ${startTs} AND sessions.end_ts <= ${trueEnd}
+                        OR    sessions.start_ts <= ${startTs} AND sessions.end_ts >= ${trueEnd}
+                        OR    sessions.end_ts IS NULL`;
 
         db.all(queryTs, undefined, function(err, rows) {
             if (err) {
                 console.log(`Error querying database:\n${err}`);
-                res.status(500).send(JSON.stringify(new Error("Error querying database for conflicting timestamps.")));
+                res.status(500).send("Error querying database for conflicting timestamps.");
                 return;
             }
 
@@ -140,19 +141,19 @@ app.put(routes["ses"], function(req, res, next) {
 
 
                 if (endTs == null && dbRow["end_ts"] == null) {
-                    res.status(400).send(JSON.stringify(new Error("Cannot start a new active session: end current session first.")));
+                    res.status(400).send("Cannot start a new active session: end current session first.");
                     return;
                 }
 
                 dbTrueEnd =  dbRow["end_ts"] == null ? moment.unix() : dbRow["end_ts"];
 
                 if (dbRow["end_ts"] == null && endTs >= dbRow["start_ts"]) {
-                    res.status(400).send(JSON.stringify(new Error("New session conflicts with the active session.")));
+                    res.status(400).send("New session conflicts with the active sessions.");
                     return;
                 } else if (dbRow["start_ts"] >= startTs && dbRow["start_ts"] <= trueEnd
                     || dbTrueEnd >= startTs && dbTrueEnd <= trueEnd
                     || dbRow["start_ts"] <= startTs && dbTrueEnd >= trueEnd) {
-                    res.status(400).send(JSON.stringify(new Error("New session conflicts with an existing session")));
+                    res.status(400).send("New session conflicts with an existing session");
                     return;
                 }
             }
@@ -161,14 +162,14 @@ app.put(routes["ses"], function(req, res, next) {
     });
 
     let checkPrimTypeId = new Promise(function(resolve, reject) {
-        let queryPrimType = `SELECT prim_type.id FROM prim_type WHERE prim_type.id = ${primTypeId}`;
+        let queryPrimType = `SELECT prim_type.id FROM prim_type WHERE prim_type.id = ${primTypeId};`;
         db.get(queryPrimType, undefined, function(err, row) {
             if (err) {
                 console.log(`Error retrieving prim_type with id\n ${err}`);
-                res.status(500).send(JSON.stringify(new Error("Error connecting to database.")));
+                res.status(500).send("Error connecting to database.");
                 return;
             } else if (!row) {
-                res.status(400).send(JSON.stringify(new Error("Primary type does not exist.")));
+                res.status(400).send("Primary type does not exist.");
                 return;
             } else {
                 resolve();
@@ -185,10 +186,10 @@ app.put(routes["ses"], function(req, res, next) {
         db.get(querySecType, undefined, function(err, row) {
             if (err) {
                 console.log(`Error retrieving second_type with id\n ${err}`);
-                res.status(500).send(JSON.stringify(new Error("Error connecting to database.")));
+                res.status(500).send("Error connecting to database.");
                 return;
             } else if (!row) {
-                res.status(400).send(JSON.stringify(new Error("Secondary type does not exist.")));
+                res.status(400).send("Secondary type does not exist.");
                 return;
             } else {
                 resolve();
@@ -317,11 +318,17 @@ function isValidCreate(req) {
 
 function queryDb(interval, ts, cb) {
     if (interval == "d") {
-        let day = moment.unix(ts).hours(0).minutes(0).seconds(0);
+        let utcMoment = moment.unix(ts).minutes(0).seconds(0);
 
-        let startTs = day.unix();
+        let dayStart;
+        if (utcMoment.hours() < 7) {
+            dayStart = moment(utcMoment).subtract(1, 'days').hours(7);
+        } else {
+            dayStart = moment(utcMoment).hours(7);
+        }
+        let startTs = dayStart.unix();
 
-        let endTs = day.add(1, 'day').unix();
+        let endTs = dayStart.add(1, 'days').unix();
 
         let query = `
             SELECT sessions.*,
