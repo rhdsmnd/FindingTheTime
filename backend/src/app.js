@@ -70,7 +70,7 @@ app.put(routes["ses"], function(req, res, next) {
         res.status(400).send("End timestamp must be an integer.");
         return;
     } else {
-        endTs = parseInt(body["start_ts"]);
+        endTs = parseInt(body["end_ts"]);
 
         if (endTs > moment().unix()) {
             res.status(400).send("End timestamp cannot be in the future.");
@@ -83,23 +83,23 @@ app.put(routes["ses"], function(req, res, next) {
     }
 
     let primTypeId;
-    if (!body.hasOwnProperty("prim_type")) {
+    if (!body.hasOwnProperty("prim_type_id")) {
         res.status(400).send("Session must have primary type.");
         return;
-    } else if (isNaN(parseInt(body["prim_type"]))) {
+    } else if (isNaN(parseInt(body["prim_type_id"]))) {
         res.status(400).send("Primary type must be an integer.");
         return;
     } else {
-        primTypeId = parseInt(body["prim_type"]);
+        primTypeId = parseInt(body["prim_type_id"]);
     }
 
     let secTypeId;
-    if (body.hasOwnProperty("sec_type")) {
-        if (isNaN(parseInt(body["sec_type"]))) {
+    if (body.hasOwnProperty("sec_type_id")) {
+        if (isNaN(parseInt(body["sec_type_id"]))) {
             res.status(400).send("Secondary type must be an integer.");
             return;
         } else {
-            secTypeId = parseInt(body["sec_type"]);
+            secTypeId = parseInt(body["sec_type_id"]);
         }
     } else {
         secTypeId = null;
@@ -114,9 +114,7 @@ app.put(routes["ses"], function(req, res, next) {
     // now check the values
 
     let checkTsConflict = new Promise(function(resolve, reject) {
-        let trueEnd = endTs == null ? moment.unix(): endTs;
-        let dayStart = moment.unix(startTs).seconds(0).hours(0);
-
+        let trueEnd = (endTs == null) ? moment().unix() : endTs;
 
         // grab
         //  1) existing sessions that have a start timestamp in the new session
@@ -131,21 +129,24 @@ app.put(routes["ses"], function(req, res, next) {
 
         db.all(queryTs, undefined, function(err, rows) {
             if (err) {
+
+                console.log(trueEnd);
+                console.log(startTs);
+
                 console.log(`Error querying database:\n${err}`);
                 res.status(500).send("Error querying database for conflicting timestamps.");
                 return;
             }
-
             for (let i = 0; i < rows.length; i += 1) {
-                dbRow = rows[i];
 
+                let dbRow = rows[i];
 
                 if (endTs == null && dbRow["end_ts"] == null) {
                     res.status(400).send("Cannot start a new active session: end current session first.");
                     return;
                 }
 
-                dbTrueEnd =  dbRow["end_ts"] == null ? moment.unix() : dbRow["end_ts"];
+                let dbTrueEnd =  dbRow["end_ts"] == null ? moment.unix() : dbRow["end_ts"];
 
                 if (dbRow["end_ts"] == null && endTs >= dbRow["start_ts"]) {
                     res.status(400).send("New session conflicts with the active sessions.");
@@ -180,9 +181,10 @@ app.put(routes["ses"], function(req, res, next) {
     let checkSecTypeId = new Promise(function(resolve, reject) {
         if (secTypeId == null) {
             resolve();
+            return;
         }
 
-        let querySecType = `SELECT prim_type.id from second_type WHERE second_type.id = ${secTypeId}`;
+        let querySecType = `SELECT second_type.id from second_type WHERE second_type.id = ${secTypeId}`;
         db.get(querySecType, undefined, function(err, row) {
             if (err) {
                 console.log(`Error retrieving second_type with id\n ${err}`);
@@ -197,30 +199,30 @@ app.put(routes["ses"], function(req, res, next) {
         });
     });
 
-
+    // handle promise failure
     Promise.all([checkTsConflict, checkPrimTypeId,
         checkSecTypeId]).then(function(dataValues) {
         req["parsed_session"] = {
             "start_ts" : startTs,
             "end_ts" : endTs,
-            "prim_type" : primTypeId,
-            "sec_type" : secTypeId,
+            "prim_type_id" : primTypeId,
+            "sec_type_id" : secTypeId,
             "descr" : descr
         };
         next();
     });
-
 }, function(req, res) {
     let sessionObj = req["parsed_session"];
 
     let insertQuery = `
-            INSERT INTO session(start_ts, end_ts, prim_type_id, second_type_id, descr) VALUES
+            INSERT INTO sessions(start_ts, end_ts, prim_type_id, second_type_id, descr) VALUES
                 (${sessionObj["start_ts"]}, ${sessionObj["end_ts"]}, ${sessionObj["prim_type_id"]},
-                    ${sessionObj["second_type_id"]}, ${sessionObj["descr"]});
+                    ${sessionObj["sec_type_id"]}, "${sessionObj["descr"]}");
     `;
 
     db.run(insertQuery, undefined, function(err) {
         if (err) {
+            console.log("Error inserting session.");
             throw err;
         }
 
