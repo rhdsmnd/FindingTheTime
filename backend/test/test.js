@@ -286,6 +286,7 @@ describe('Routes', function() {
         });
 
         it("should not save sessions with equal start timestamps.", function(done) {
+            // beforeEach loads a session into the database
             chai.request("http://localhost:2999")
                 .put("/sessions")
                 .send({
@@ -306,6 +307,7 @@ describe('Routes', function() {
         });
 
         it("should not save sessions that conflict with existing sessions.", function(done) {
+            // beforeEach loads a session into the database
             let endTsBetween = new Promise(function(resolve, reject) {
                 chai.request("http://localhost:2999")
                     .put("/sessions")
@@ -454,18 +456,148 @@ describe('Routes', function() {
                 });
         });
 
-        // TODO: MORE TESTS REGARDING THE ACTIVE SESSION
-    });
-/**
-    describe('DEL /sessions', function(done) {
-        it("should delete a session from the database.", function() {
+        it("Should not save an active session if there is an existing active session", function(done) {
+            db.run("INSERT INTO sessions(start_ts, end_ts, descr, prim_type_id) "
+                        + "VALUES (487660400, null, \"asdf\", " + primTypeIds["coding"] + ");", {}, function(err) {
+                chai.request("http://localhost:2999")
+                    .put("/sessions")
+                    .send({
+                        "start_ts": "1487668970",
+                        "prim_type_id": primTypeIds["coding"]
+                    })
+                    .end(function(err, res) {
+                        expect(res).to.have.status(400);
+                        done();
+                    });
+            });
+        });
 
-            // NOT IMPLEMENTED
-            return Promise.resolve(1).should.eventually.equal(1);
+        it("Should not save an active session if it conflicts with an existing session", function(done) {
+            db.run("INSERT INTO sessions(start_ts, end_ts, descr, prim_type_id) "
+                + "VALUES (487660400, 487660600, \"asdf\", " + primTypeIds["coding"] + ");", {}, function(err) {
+                chai.request("http://localhost:2999")
+                    .put("/sessions")
+                    .send({
+                        "start_ts": "1487660300",
+                        "prim_type_id": primTypeIds["coding"]
+                    })
+                    .end(function(err, res) {
+                        expect(res).to.have.status(400);
+                        done();
+                    });
+            });
+        });
+
+        it("Should not save a session with a timestamp in the future.", function(done) {
+            chai.request("http://localhost:2999")
+                .put("/sessions")
+                .send({
+                    "start_ts": "1487660300",
+                    "prim_type_id": primTypeIds["coding"]
+                })
+                .end(function(err, res) {
+                    expect(res).to.have.status(400);
+                    done();
+                });
+        });
+
+        it("Should not save a session with a start timestamp greater than the end timestamp", function(done) {
+            chai.request("http://localhost:2999")
+                .put("/sessions")
+                .send({
+                    "start_ts": "1487660360",
+                    "end_ts": "1487660260",
+                    "descr": "Th",
+                    "prim_type_id": primTypeIds["coding"],
+                    "sec_type_id": secondTypeIds["web server"]
+                })
+                .end(function(err, res) {
+                    expect(res).to.have.status(400);
+                    done();
+                });
+        });
+
+        it("Should not save a session with an invalid primary type id", function(done) {
+            chai.request("http://localhost:2999")
+                .put("/sessions")
+                .send({
+                    "start_ts": "1487660060",
+                    "end_ts": "1487660260",
+                    "descr": "Th",
+                    "prim_type_id": 1000,
+                    "sec_type_id": secondTypeIds["web server"]
+                })
+                .end(function(err, res) {
+                    expect(res).to.have.status(400);
+                    done();
+                });
+        });
+
+        it("Should not save a session with an invalid secondary type id", function(done) {
+            chai.request("http://localhost:2999")
+                .put("/sessions")
+                .send({
+                    "start_ts": "1487660060",
+                    "end_ts": "1487660260",
+                    "descr": "Th",
+                    "prim_type_id": primTypeIds["coding"],
+                    "sec_type_id": 1000
+                })
+                .end(function(err, res) {
+                    expect(res).to.have.status(400);
+                    done();
+                });
+        });
+
+    });
+
+    describe('DEL /sessions', function() {
+        let sessionId;
+
+        beforeEach(function(done) {
+            db.run(`INSERT INTO sessions(start_ts, end_ts, descr, prim_type_id) VALUES
+                        (1487660460, 1487668860, "Th",
+                            (SELECT prim_type.id FROM prim_type WHERE prim_type.name = \"coding\"));
+            `, undefined, function(err) {
+                db.get(`SELECT sessions.id FROM sessions WHERE sessions.start_ts = 1487660460`, {}, function(err, row) {
+                    sessionId = row["id"];
+                    done();
+                });
+            });
+        });
+
+        it("should delete a session from the database (given id in request body).", function(done) {
+            chai.request("http://localhost:2999")
+                .delete("/sessions")
+                .send({
+                    "id" : sessionId
+                })
+                .end(function(err, res) {
+                   expect(res).to.have.status(200);
+                   db.get(`SELECT sessions.id FROM sessions WHERE sessions.id = ${sessionId}`, {}, function(err, row) {
+                       expect(row).to.equal(undefined);
+                       done();
+                   })
+                });
+        });
+
+        it("should delete a session from the database (given start timestamp in request body).", function(done) {
+            chai.request("http://localhost:2999")
+                .delete("/sessions")
+                .send({
+                    "start_ts" : 1487660460
+                })
+                .end(function(err, res) {
+                    expect(res).to.have.status(200);
+                    db.get(`SELECT sessions.id FROM sessions WHERE sessions.id = ${sessionId}`, {}, function(err, row) {
+                        expect(row).to.equal(undefined);
+                        done();
+                    })
+                });
         });
     });
-
-    describe('PUT /prim_type', function(done) {
+/**
+    describe('PUT /prim_type', function() {
         it("should put a primary type into the database.", function() {
 
             // NOT IMPLEMENTED
@@ -473,7 +605,7 @@ describe('Routes', function() {
         });
     });
 
-    describe('DEL /prim_type', function(done) {
+    describe('DEL /prim_type', function() {
         it("should delete a primary type from the database.", function() {
 
             // NOT IMPLEMENTED
@@ -481,7 +613,7 @@ describe('Routes', function() {
         });
     });
 
-    describe('PUT /sec_type', function(done) {
+    describe('PUT /sec_type', function() {
         it("should put a secondary type into the database.", function() {
 
             // NOT IMPLEMENTED
@@ -489,7 +621,7 @@ describe('Routes', function() {
         });
     });
 
-    describe('DEL /sec_type', function(done) {
+    describe('DEL /sec_type', function() {
         it("should delete a secondary type from the database.", function() {
 
             // NOT IMPLEMENTED
@@ -497,7 +629,7 @@ describe('Routes', function() {
         });
     });
 
-    describe('PUT /color', function(done) {
+    describe('PUT /color', function() {
         it("should put a secondary type into the database.", function() {
 
             // NOT IMPLEMENTED
@@ -505,7 +637,7 @@ describe('Routes', function() {
         });
     });
 
-    describe('DEL /color', function(done) {
+    describe('DEL /color', function() {
         it("should delete a secondary type from the database.", function() {
 
             // NOT IMPLEMENTED

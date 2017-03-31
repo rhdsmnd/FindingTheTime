@@ -63,7 +63,7 @@ app.put(routes["ses"], function(req, res, next) {
         }
     }
 
-    let endTs;
+    let endTs, now = moment().unix();
     if (!body.hasOwnProperty("end_ts")) {
         endTs = null;
     } else if (isNaN(parseInt(body["end_ts"]))) {
@@ -72,7 +72,7 @@ app.put(routes["ses"], function(req, res, next) {
     } else {
         endTs = parseInt(body["end_ts"]);
 
-        if (endTs > moment().unix()) {
+        if (endTs > now) {
             res.status(400).send("End timestamp cannot be in the future.");
             return;
         } else if (endTs < startTs) {
@@ -114,7 +114,7 @@ app.put(routes["ses"], function(req, res, next) {
     // now check the values
 
     let checkTsConflict = new Promise(function(resolve, reject) {
-        let trueEnd = (endTs == null) ? moment().unix() : endTs;
+        let trueEnd = (endTs == null) ? now : endTs;
 
         // grab
         //  1) existing sessions that have a start timestamp in the new session
@@ -135,6 +135,7 @@ app.put(routes["ses"], function(req, res, next) {
 
                 console.log(`Error querying database:\n${err}`);
                 res.status(500).send("Error querying database for conflicting timestamps.");
+                reject("Error querying database for conflicting timestamps.");
                 return;
             }
             for (let i = 0; i < rows.length; i += 1) {
@@ -143,18 +144,25 @@ app.put(routes["ses"], function(req, res, next) {
 
                 if (endTs == null && dbRow["end_ts"] == null) {
                     res.status(400).send("Cannot start a new active session: end current session first.");
+                    reject("Cannot start a new active session: end current session first.");
                     return;
                 }
 
-                let dbTrueEnd =  dbRow["end_ts"] == null ? moment.unix() : dbRow["end_ts"];
+                let dbTrueEnd =  dbRow["end_ts"] == null ? now : dbRow["end_ts"];
 
                 if (dbRow["end_ts"] == null && endTs >= dbRow["start_ts"]) {
                     res.status(400).send("New session conflicts with the active sessions.");
+                    reject("New session conflicts with the active sessions.");
+                    return;
+                } else if (endTs == null && dbRow["end_ts"] >= startTs) {
+                    res.status(400).send("An existing sessions conflicts with new active session.");
+                    reject("An existing sessions conflicts with new active session.");
                     return;
                 } else if (dbRow["start_ts"] >= startTs && dbRow["start_ts"] <= trueEnd
                     || dbTrueEnd >= startTs && dbTrueEnd <= trueEnd
                     || dbRow["start_ts"] <= startTs && dbTrueEnd >= trueEnd) {
                     res.status(400).send("New session conflicts with an existing session");
+                    reject("New session conflicts with an existing session");
                     return;
                 }
             }
@@ -168,10 +176,10 @@ app.put(routes["ses"], function(req, res, next) {
             if (err) {
                 console.log(`Error retrieving prim_type with id\n ${err}`);
                 res.status(500).send("Error connecting to database.");
-                return;
+                reject(err);
             } else if (!row) {
                 res.status(400).send("Primary type does not exist.");
-                return;
+                reject(err);
             } else {
                 resolve();
             }
@@ -189,10 +197,10 @@ app.put(routes["ses"], function(req, res, next) {
             if (err) {
                 console.log(`Error retrieving second_type with id\n ${err}`);
                 res.status(500).send("Error connecting to database.");
-                return;
+                reject(err);
             } else if (!row) {
                 res.status(400).send("Secondary type does not exist.");
-                return;
+                reject("Secondary type does not exist.");
             } else {
                 resolve();
             }
@@ -210,6 +218,7 @@ app.put(routes["ses"], function(req, res, next) {
             "descr" : descr
         };
         next();
+    }, function(err) {
     });
 }, function(req, res) {
     let sessionObj = req["parsed_session"];
@@ -227,7 +236,7 @@ app.put(routes["ses"], function(req, res, next) {
         }
 
         sessionObj["id"] = this.lastID;
-        res.status(200).send(JSON.stringify(sessionObj));
+        res.status(200).send();
     });
 });
 
@@ -238,12 +247,176 @@ app.post(routes["ses"], function(req, res) {
     res.send();
 });
 
-app.post(routes["pri"], function(req, res) {
-    res.send("Not implemented");
+app.put(routes["pri"], function(req, res, next) {
+    let body = req["body"];
+
+    if (!body.hasOwnProperty("name")) {
+        res.status(400).send("Primary type must have a name.");
+        return;
+    }
+
+    let primName = body["name"];
+
+    if (!body.hasOwnProperty("r")) {
+        res.status(400).send("Primary type must have red ('r') property.");
+        return;
+    } else if (isNaN(parseInt(body["r"])) || parseInt(body["r"] < 0 || parseInt(body["r"] > 255))) {
+        res.status(400).send("Primary type must have a valid red value (0 - 255).");
+        return;
+    }
+
+    let primR = parseInt(body["r"]);
+
+    if (!body.hasOwnProperty("g")) {
+        res.status(400).send("Primary type must have green ('g') property.");
+        return;
+    } else if (isNaN(parseInt(body["g"])) || parseInt(body["g"] < 0 || parseInt(body["g"] > 255))) {
+        res.status(400).send("Primary type must have a valid green value (0 - 255).");
+        return;
+    }
+
+    let primG = parseInt(body["g"]);
+
+    if (!body.hasOwnProperty("b")) {
+        res.status(400).send("Primary type must have blue ('b') property.");
+        return;
+    } else if (isNaN(parseInt(body["b"])) || parseInt(body["b"] < 0 || parseInt(body["b"] > 255))) {
+        res.status(400).send("Primary type must have a valid blue value (0 - 255).");
+        return;
+    }
+
+    let primB = parseInt(body["b"]);
+
+    let colorCheck = new Promise(function(resolve, reject) {
+       db.get(`SELECT prim_type.r, prim_type.g, prim_type.b FROM prim_type WHERE
+                    prim_type.r = ${primR} AND prim_type.g = ${primG} AND prim_type.b = ${primB}`,
+                    {}, function(err, row) {
+            if (!row) {
+                reject("Color for primary type does not exist.");
+            } else {
+                resolve();
+            }
+       });
+    });
+    colorCheck.then(function(data) {
+        req["parsedPrimType"] = {
+            "name" : primName,
+            "r" : primR,
+            "g" : primG,
+            "b" : primB
+        };
+        next();
+    }, function(err) {
+        res.status(400).send(err);
+    });
+
+    next();
+}, function(req, res) {
+    db.run(`INSERT INTO prim_type(name, r, g, b) VALUES (${name}, ${r}, ${g}, ${b})`, {}, function(err) {
+        if (err) {
+            res.status(500).send("Error storing primary type in database.");
+            return;
+        } else {
+            res.status(200).send();
+        }
+    })
 });
 
-app.put(routes["sec"], function(req, res) {
-    res.send("Not implemented");
+app.put(routes["sec"], function(req, res, next) {
+    let body = req["body"];
+
+    if (!body.hasOwnProperty("name")) {
+        res.status(400).send("Secondary type must have a name.");
+        return;
+    }
+
+    let secName = body["name"];
+
+    if (!body.hasOwnProperty("r")) {
+        res.status(400).send("Secondary type must have red ('r') property.");
+        return;
+    } else if (isNaN(parseInt(body["r"])) || parseInt(body["r"] < 0 || parseInt(body["r"] > 255))) {
+        res.status(400).send("Secondary type must have a valid red value (0 - 255).");
+        return;
+    }
+
+    let secR = parseInt(body["r"]);
+
+    if (!body.hasOwnProperty("g")) {
+        res.status(400).send("Secondary type must have green ('g') property.");
+        return;
+    } else if (isNaN(parseInt(body["g"])) || parseInt(body["g"] < 0 || parseInt(body["g"] > 255))) {
+        res.status(400).send("Secondary type must have a valid green value (0 - 255).");
+        return;
+    }
+
+    let secG = parseInt(body["g"]);
+
+    if (!body.hasOwnProperty("b")) {
+        res.status(400).send("Secondary type must have blue ('b') property.");
+        return;
+    } else if (isNaN(parseInt(body["b"])) || parseInt(body["b"] < 0 || parseInt(body["b"] > 255))) {
+        res.status(400).send("Secondary type must have a valid blue value (0 - 255).");
+        return;
+    }
+
+    let secB = parseInt(body["b"]);
+
+    if (!body.hasOwnProperty("prim_type_id")) {
+        res.status(400).send("Secondary type must have a primary type id.");
+        return;
+    } else if (isNaN(parseInt(body["prim_type_id"]))) {
+        res.status(400).send("Secondary type must have an integer as a primary type id.");
+        return;
+    }
+
+    let primIdCheck = new Promise(function(resolve, reject) {
+        db.get(`SELECT prim_type.id FROM prim_type WHERE prim_type.id = ${body["prim_type_id"]};`, {}, function(err, row) {
+            if (!row) {
+                reject("Primary type id does not exist.");
+            } else {
+                resolve();
+            }
+        });
+    });
+
+    let colorCheck = new Promise(function(resolve, reject) {
+       db.get(`SELECT prim_type.r, prim_type.g, prim_type.b FROM prim_type WHERE
+                    prim_type.r = ${primR} AND prim_type.g = ${primG} AND prim_type.b = ${primB}`,
+                    {}, function(err, row) {
+            if (!row) {
+                reject("Color does not exist for secondary type.");
+            } else {
+                resolve();
+            }
+       });
+    });
+
+    Promise.all([primIdCheck, colorCheck]).then(function(values) {
+        req["parsedSecType"] = {
+            "name" : secName,
+            "prim_type_id" : body["prim_type_id"],
+            "r" : secR,
+            "g" : secG,
+            "b" : secB
+        };
+        next();
+    }, function(err) {
+        res.status(400).send(err);
+    });
+}, function(req, res) {
+    let secType = req["parsedSecType"];
+
+    db.run(`INSERT INTO second_type(name, prim_type_id, r, g, b)
+                                    VALUES (${secType["name"]}, ${secType["prim_type_id"]}, ${secType["r"},
+                                            ${secType["g"}, ${secType["b"})`, {}, function(err) {
+        if (err) {
+            res.status(500).send("Error storing secondary type in database.");
+            return;
+        } else {
+            res.status(200).send();
+        }
+    })
 });
 
 app.put(routes["col"], function(req, res) {
@@ -251,7 +424,42 @@ app.put(routes["col"], function(req, res) {
 });
 
 app.delete(routes["ses"], function(req, res) {
-    res.send("Not implemented.")
+    let body = req["body"];
+
+    if (body.hasOwnProperty("id")) {
+        if (isNaN(parseInt(body["id"]))) {
+            res.status(400).send("Session id must be a number.");
+            return;
+        }
+
+        db.run(`DELETE FROM sessions WHERE sessions.id = ${body["id"]}`, {}, function(err) {
+            if (!err) {
+                res.status(200).send(`Deleted session with id = ${body["id"]}`);
+                return;
+            } else {
+                res.status(500).send(`Couldn't delete session with id = ${body["id"]}`);
+                return;
+            }
+        });
+    } else if (body.hasOwnProperty("start_ts")) {
+        if (isNaN(parseInt(body["start_ts"]))) {
+            res.status(400).send("Session start timestamp must be a number.");
+            return;
+        }
+
+        db.run(`DELETE FROM sessions WHERE sessions.start_ts = ${body["start_ts"]}`, {}, function(err) {
+            if (!err) {
+                res.status(200).send(`Deleted session with start timestamp = ${body["start_ts"]}`);
+                return;
+            } else {
+                res.status(500).send(`Couldn't delete session with start timestamp = ${body["start_ts"]}`);
+                console.log(err);
+                return;
+            }
+        });
+    } else {
+        res.status(400).send("DELETE body must have a session id or a start timestamp.");
+    }
 });
 
 app.delete(routes["pri"], function(req, res) {
