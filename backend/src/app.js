@@ -239,13 +239,13 @@ app.put(routes["ses"], function(req, res, next) {
         res.status(200).send();
     });
 });
-
+/**
 app.post(routes["ses"], function(req, res) {
 
     validate(routes["ses"], req);
 
     res.send();
-});
+});*/
 
 app.put(routes["pri"], function(req, res, next) {
     let body = req["body"];
@@ -288,11 +288,11 @@ app.put(routes["pri"], function(req, res, next) {
     let primB = parseInt(body["b"]);
 
     let colorCheck = new Promise(function(resolve, reject) {
-       db.get(`SELECT prim_type.r, prim_type.g, prim_type.b FROM prim_type WHERE
-                    prim_type.r = ${primR} AND prim_type.g = ${primG} AND prim_type.b = ${primB}`,
-                    {}, function(err, row) {
+       db.get(`SELECT colors.r FROM colors WHERE
+                    colors.r=? AND colors.g=? AND colors.b=?`,
+                    [primR, primG, primB], function(err, row) {
             if (!row) {
-                reject("Color for primary type does not exist.");
+                reject("Color does not exist.");
             } else {
                 resolve();
             }
@@ -307,19 +307,21 @@ app.put(routes["pri"], function(req, res, next) {
         };
         next();
     }, function(err) {
-        res.status(400).send(err);
+        console.log(err);
+        res.status(500).send("Error retrieving color from database.");
     });
-
-    next();
 }, function(req, res) {
-    db.run(`INSERT INTO prim_type(name, r, g, b) VALUES (${name}, ${r}, ${g}, ${b})`, {}, function(err) {
+    let insertObj = req["parsedPrimType"];
+
+    db.run(`INSERT INTO prim_type(name, r, g, b) VALUES (?, ?, ?, ?)`,
+                [insertObj["name"], insertObj["r"], insertObj["g"], insertObj["b"]], function(err) {
         if (err) {
             res.status(500).send("Error storing primary type in database.");
             return;
         } else {
             res.status(200).send();
         }
-    })
+    });
 });
 
 app.put(routes["sec"], function(req, res, next) {
@@ -362,30 +364,43 @@ app.put(routes["sec"], function(req, res, next) {
 
     let secB = parseInt(body["b"]);
 
-    if (!body.hasOwnProperty("prim_type_id")) {
-        res.status(400).send("Secondary type must have a primary type id.");
+    if (!body.hasOwnProperty("prim_type_id") && !body.hasOwnProperty("prim_type_name")) {
+        res.status(400).send("Secondary type must have a primary type id or name.");
         return;
-    } else if (isNaN(parseInt(body["prim_type_id"]))) {
+    }
+
+    if (body.hasOwnProperty["prim_type_id"] && isNaN(parseInt(body["prim_type_id"]))) {
         res.status(400).send("Secondary type must have an integer as a primary type id.");
         return;
     }
 
     let primIdCheck = new Promise(function(resolve, reject) {
-        db.get(`SELECT prim_type.id FROM prim_type WHERE prim_type.id = ${body["prim_type_id"]};`, {}, function(err, row) {
-            if (!row) {
-                reject("Primary type id does not exist.");
-            } else {
-                resolve();
-            }
-        });
+        if (body["prim_type_id"]) {
+            db.get(`SELECT prim_type.id FROM prim_type WHERE prim_type.id = ${body["prim_type_id"]};`, {}, function (err, row) {
+                if (!row) {
+                    reject("Primary type id does not exist.");
+                } else {
+                    resolve();
+                }
+            });
+        } else {
+            db.get(`SELECT prim_type.id FROM prim_type WHERE prim_type.name=?;`, [ body["prim_type_name"] ], function (err, row) {
+                if (!row) {
+                    reject("Primary type name does not exist.");
+                } else {
+                    body["prim_type_id"] = row["id"];
+                    resolve();
+                }
+            });
+        }
     });
 
     let colorCheck = new Promise(function(resolve, reject) {
-       db.get(`SELECT prim_type.r, prim_type.g, prim_type.b FROM prim_type WHERE
-                    prim_type.r = ${primR} AND prim_type.g = ${primG} AND prim_type.b = ${primB}`,
-                    {}, function(err, row) {
+       db.get(`SELECT colors.r, colors.g, colors.b FROM colors WHERE
+                    colors.r=? AND colors.g=? AND colors.b=?`,
+                    [ body["r"], body["g"], body["b"] ], function(err, row) {
             if (!row) {
-                reject("Color does not exist for secondary type.");
+                reject("Color does not exist in database.");
             } else {
                 resolve();
             }
@@ -396,31 +411,90 @@ app.put(routes["sec"], function(req, res, next) {
         req["parsedSecType"] = {
             "name" : secName,
             "prim_type_id" : body["prim_type_id"],
-            "r" : secR,
-            "g" : secG,
-            "b" : secB
+            "r" : body["r"],
+            "g" : body["g"],
+            "b" : body["b"]
         };
         next();
     }, function(err) {
-        res.status(400).send(err);
+        res.status(400).send(err.message);
     });
 }, function(req, res) {
     let secType = req["parsedSecType"];
 
     db.run(`INSERT INTO second_type(name, prim_type_id, r, g, b)
-                                    VALUES (${secType["name"]}, ${secType["prim_type_id"]}, ${secType["r"},
-                                            ${secType["g"}, ${secType["b"})`, {}, function(err) {
+                                    VALUES (?, ?, ?, ?, ?)`,
+                        [ secType["name"], secType["prim_type_id"], secType["r"], secType["g"], secType["b"] ],
+                        function(err) {
         if (err) {
+            console.log(err);
             res.status(500).send("Error storing secondary type in database.");
             return;
         } else {
             res.status(200).send();
         }
-    })
+    });
 });
 
-app.put(routes["col"], function(req, res) {
-    res.send("Not implemented");
+app.put(routes["col"], function(req, res, next) {
+    let body = req["body"];
+    if (!body.hasOwnProperty("r")) {
+        rest.status(400).send("Color must have a red property.");
+        return;
+    } else if (isNaN(parseInt(body["r"]))) {
+        res.status(400).send("Red value for color must be an integer.");
+        return;
+    } else if (parseInt(body["r"] < 0 || parseInt(body["r"] > 255))) {
+        res.status(400).send("Red value for color must be between 0 and 255 inclusive.");
+        return;
+    }
+
+    let newR = parseInt(body["r"]);
+
+    if (!body.hasOwnProperty("g")) {
+        rest.status(400).send("Color must have a green property.");
+        return;
+    } else if (isNaN(parseInt(body["g"]))) {
+        res.status(400).send("Green value for color must be an integer.");
+        return;
+    } else if (parseInt(body["g"] < 0 || parseInt(body["g"] > 255))) {
+        res.status(400).send("Green value for color must be between 0 and 255 inclusive.");
+        return;
+    }
+
+    let newG = parseInt(body["g"]);
+
+    if (!body.hasOwnProperty("b")) {
+        rest.status(400).send("Color must have a blue property.");
+        return;
+    } else if (isNaN(parseInt(body["b"]))) {
+        res.status(400).send("Blue value for color must be an integer.");
+        return;
+    } else if (parseInt(body["b"] < 0 || parseInt(body["r"] > 255))) {
+        res.status(400).send("Blue value for color must be between 0 and 255 inclusive.");
+        return;
+    }
+
+    let newB = parseInt(body["b"]);
+
+    req["parsedColor"] = {
+        "r" : newR,
+        "g" : newG,
+        "b" : newB
+    }
+
+    next();
+}, function(req, res) {
+    let color = req["parsedColor"];
+
+    db.run(`INSERT INTO colors(r, g, b)
+                 VALUES (${color["r"]}, ${color["g"]}, ${color["b"]})`, {}, function(err) {
+        if (err) {
+            res.status(500).send("Error storing color in database.");
+        } else {
+            res.status(200).send();
+        }
+    })
 });
 
 app.delete(routes["ses"], function(req, res) {
@@ -450,11 +524,9 @@ app.delete(routes["ses"], function(req, res) {
         db.run(`DELETE FROM sessions WHERE sessions.start_ts = ${body["start_ts"]}`, {}, function(err) {
             if (!err) {
                 res.status(200).send(`Deleted session with start timestamp = ${body["start_ts"]}`);
-                return;
             } else {
                 res.status(500).send(`Couldn't delete session with start timestamp = ${body["start_ts"]}`);
                 console.log(err);
-                return;
             }
         });
     } else {
@@ -463,16 +535,107 @@ app.delete(routes["ses"], function(req, res) {
 });
 
 app.delete(routes["pri"], function(req, res) {
-    res.send("Not implemented.")
+    let body = req["body"];
+
+    let delId = null, delName = null;
+    if (body.hasOwnProperty("id")) {
+        if (isNaN(parseInt(body["id"]))) {
+            res.status(400).send("The id property in the DELETE primary type request must be an integer.");
+            return;
+        }
+
+        db.run(`DELETE FROM prim_type WHERE prim_type.id=?`, [ body["id"] ], function(err) {
+            if (err) {
+                console.log(err);
+                res.status(500).send(`Error deleting primary type with id: ${body["id"]}.`);
+            } else {
+                res.status(200).send(`Deleted primary type with id: ${body["id"]}.`);
+            }
+        });
+    } else if (body.hasOwnProperty("name")) {
+        db.run(`DELETE FROM prim_type WHERE prim_type.name=?`, [ body["name"] ], function(err) {
+            if (err) {
+                console.log(err);
+                res.status(500).send(`Error deleting primary type with name: ${body["name"]}.`);
+            } else {
+                res.status(200).send(`Deleted primary type with name: "${body["name"]}".`);
+            }
+        });
+    } else {
+        res.status(400).send("DELETE /prim_type must have an \"id\" or \"name\" property.");
+    }
+
 });
 
 app.delete(routes["sec"], function(req, res) {
-    res.send("Not implemented.")
+    let body = req["body"];
+
+    let name = body["name"], primName = body["prim_name"];
+
+    if (!name || !primName) {
+        res.status(400).send("Delete request for secondary type must have name and prim_name properties.");
+        return;
+    }
+
+    db.get(`DELETE FROM second_type WHERE second_type.prim_type_id=
+                    (SELECT prim_type.id FROM prim_type WHERE prim_type.name=?)
+                AND second_type.name=?`, [ primName, name ], function(err, row) {
+        if (err) {
+            console.log(err.message);
+            res.status(500).send("Error deleting secondary type from database.");
+        } else {
+            res.status(200).send();
+        }
+    });
 });
 
 app.delete(routes["col"], function(req, res) {
-    res.send("Not implemented.")
+    let body = req["body"];
+
+    let r;
+    try {
+        r = validateColor(body["r"]);
+    } catch(err) {
+        res.status(400).send(`Could not handle DELETE /color. Error parsing red color value: ${err.message}.`);
+        return;
+    }
+
+    let g;
+    try {
+        g = validateColor(body["g"]);
+    } catch(err) {
+        res.status(400).send(`Could not handle DELETE /color. Error parsing green color value: ${err.message}.`);
+        return;
+    }
+
+    let b;
+    try {
+        b = validateColor(body["b"]);
+    } catch(err) {
+        res.status(400).send(`Could not handle DELETE /color. Error parsing blue color value: ${err.message}.`);
+        return;
+    }
+
+    db.run(`DELETE FROM colors WHERE colors.r = ${r} AND colors.g = ${g} AND colors.b = ${b}`, {}, function(err) {
+        if (err) {
+            console.log(err);
+            res.status(500).send(`Couldn't delete color for route DELETE /color and values (r: ${r}, g: ${g}, b: ${b})`);
+        } else {
+            res.status(200).send();
+        }
+    });
 });
+
+function validateColor(colorVal) {
+    let colorInt = parseInt(colorVal);
+    if (isNaN(colorInt)) {
+        throw new Error(`${colorVal} is not an integer`);
+    } else if (colorInt < 0 || colorInt > 255) {
+        throw new Error(`${colorInt} is not a valid color value (between 0 and 255 inclusive)`);
+    } else {
+        return colorInt;
+    }
+}
 
 /**
  * Expects a query string with interval & date key values.
@@ -516,14 +679,6 @@ function isValidQuery(req) {
     }
 
     return ret;
-}
-
-function isValidUpdate(req) {
-
-}
-
-function isValidCreate(req) {
-
 }
 
 function queryDb(interval, ts, cb) {

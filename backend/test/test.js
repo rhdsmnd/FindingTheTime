@@ -22,12 +22,13 @@ var expect = require('chai').expect;
 
 const SERVER_START_MESSAGE = "Web server started.";
 
-console.log(__dirname);
-
 // run from 'npm test', so current directory is backend root
 const DB_PATH = "./test_db/test_db.sqlite3";
 var db;
 
+
+var primTypeIds = {};
+var secondTypeIds = {};
 
 before(function(done) {
 
@@ -42,11 +43,43 @@ before(function(done) {
         });
 
     }).then(function() {
-        server = app.start(DB_PATH, done);
+        server = app.start(DB_PATH, function(data) {
+            Promise.all([primTypeQuery, secTypeQuery]).then(function(dataArr) {
+                done();
+            });
+        });
     }, function(err) {
         console.log("Error opening database");
         done(err);
     });
+
+    var primTypeQuery = new Promise(function (resolve, reject) {
+        db.all("SELECT prim_type.id, prim_type.name FROM prim_type", {}, function (err, rows) {
+            if (err) {
+                console.log(err);
+                reject("Error retrieving primary types from database.");
+            }
+            rows.forEach(function (elem) {
+                primTypeIds[elem["name"]] = elem["id"];
+            });
+
+            resolve();
+        });
+    });
+    var secTypeQuery = new Promise(function (resolve, reject) {
+        db.all("SELECT second_type.id, second_type.name FROM second_type", {}, function(err, rows) {
+            if (err) {
+                console.log(err);
+                reject("Error retrieving secondary types from database.");
+            }
+            rows.forEach(function(elem) {
+                secondTypeIds[elem["name"]] = elem["id"];
+            });
+
+            resolve();
+        });
+    });
+
 });
 
 after(function(done) {
@@ -56,7 +89,6 @@ after(function(done) {
     // delete database
     db.close(function(err) {
         if (!err) {
-            console.log("exiting");
             done();
         } else {
             console.log(err);
@@ -76,7 +108,6 @@ afterEach(function() {
 });
 
 describe('Routes', function() {
-
 
     describe('Sanity test', function() {
         it('should pass', function() {
@@ -207,42 +238,6 @@ describe('Routes', function() {
     });
 
     describe('PUT /sessions', function() {
-        var primTypeIds = {};
-        var secondTypeIds = {};
-        before(function(done) {
-
-            var primTypeQuery = new Promise(function (resolve, reject) {
-                db.all("SELECT prim_type.id, prim_type.name FROM prim_type", {}, function (err, rows) {
-                    if (err) {
-                        console.log(err);
-                        reject("Error retrieving primary types from database.");
-                    }
-                    rows.forEach(function (elem) {
-                        primTypeIds[elem["name"]] = elem["id"];
-                    });
-
-                    resolve();
-                });
-            });
-            var secTypeQuery = new Promise(function (resolve, reject) {
-                db.all("SELECT second_type.id, second_type.name FROM second_type", {}, function(err, rows) {
-                    if (err) {
-                        console.log(err);
-                        reject("Error retrieving secondary types from database.");
-                    }
-                    rows.forEach(function(elem) {
-                        secondTypeIds[elem["name"]] = elem["id"];
-                    });
-
-                    resolve();
-                });
-            });
-
-            Promise.all([primTypeQuery, secTypeQuery]).then(function(dataArr) {
-                done();
-            });
-
-        });
 
         beforeEach(function(done) {
             db.run(`INSERT INTO sessions(start_ts, end_ts, descr, prim_type_id, second_type_id) VALUES
@@ -596,55 +591,190 @@ describe('Routes', function() {
                 });
         });
     });
-/**
-    describe('PUT /prim_type', function() {
-        it("should put a primary type into the database.", function() {
 
-            // NOT IMPLEMENTED
-            return Promise.resolve(1).should.eventually.equal(1);
+    describe('PUT /prim_type', function() {
+        it("should put a primary type into the database.", function(done) {
+
+            chai.request("http://localhost:2999")
+                .put("/primary_type")
+                .send({
+                    "name" : "asdf",
+                    "r" : 179,
+                    "g" : 161,
+                    "b" : 131
+                })
+                .end(function(err, res) {
+                   console.log(res.text);
+                   expect(res).to.have.status(200);
+                   db.get(`SELECT prim_type.name FROM prim_type WHERE prim_type.name = "asdf";`, {}, function(err, row) {
+                       expect(row["name"]).to.equal("asdf");
+                       done();
+                   })
+                });
         });
     });
 
     describe('DEL /prim_type', function() {
-        it("should delete a primary type from the database.", function() {
+        before(function(done) {
+           db.run("INSERT INTO prim_type(name, r, g, b) VALUES (\"asdf\", 179, 161, 131);", {}, function(err) {
+               if (!err) {
+                   done();
+               } else {
+                   throw new Error("Couldn't insert primary type into database for testing.");
+               }
+           });
+        });
 
-            // NOT IMPLEMENTED
-            return Promise.resolve(1).should.eventually.equal(1);
+        it("should delete a primary type from the database.", function(done) {
+
+            chai.request("http://localhost:2999")
+                .delete("/primary_type")
+                .send({
+                    "name" : "asdf"
+                })
+                .end(function(err, res) {
+                    expect(res).to.have.status(200);
+                    db.get("SELECT prim_type.name FROM prim_type WHERE prim_type.name=\"asdf\";", {}, function(err, row) {
+                        expect(row).to.equal(undefined);
+                        done();
+                    });
+                });
+
         });
     });
 
     describe('PUT /sec_type', function() {
-        it("should put a secondary type into the database.", function() {
-
-            // NOT IMPLEMENTED
-            return Promise.resolve(1).should.eventually.equal(1);
+        it("should put a secondary type into the database.", function(done) {
+            chai.request("http://localhost:2999")
+                .put("/secondary_type")
+                .send({
+                    "prim_type_name" : "coding",
+                    "name" : "testing",
+                    "r" : 179,
+                    "g" : 161,
+                    "b" : 131
+                })
+                .end(function(err, res) {
+                    console.log(res.text);
+                    expect(res).to.have.status(200);
+                    db.get("SELECT second_type.name FROM second_type WHERE second_type.name = \"testing\";", {}, function(err, row) {
+                        expect(row["name"]).to.equal("testing");
+                        done();
+                    });
+                });
         });
     });
 
     describe('DEL /sec_type', function() {
-        it("should delete a secondary type from the database.", function() {
-
-            // NOT IMPLEMENTED
-            return Promise.resolve(1).should.eventually.equal(1);
+        it("should delete a secondary type from the database.", function(done) {
+            new Promise(function(resolve, reject) {
+                db.get(`SELECT prim_type.id FROM prim_type WHERE prim_type.name="coding";`,
+                                    {}, function(err, row) {
+                    if (err) {
+                        console.log(err.message);
+                        throw new Error("Database error retrieving primary type id for secondary type test.");
+                    } else if (!row){
+                        throw new Error("No entry for \"coding\" primary type.");
+                    } else {
+                        resolve(row["id"]);
+                    }
+                });
+            }).then(function(primTypeId) {
+                chai.request("http://localhost:2999")
+                    .delete("/secondary_type")
+                    .send({
+                        prim_name : "coding",
+                        name : "database"
+                    })
+                    .end(function(err, res) {
+                        db.get(`SELECT second_type.name FROM second_type
+                                    WHERE second_type.prim_type_id = ${primTypeId}
+                                        AND second_type.name="database"`,
+                                {}, function(err, row) {
+                            if (err) {
+                                console.log(err.message);
+                                throw new Error("Database error retrieving secondary type.");
+                            } else {
+                                expect(row).to.equal(undefined);
+                                done();
+                            }
+                        });
+                    });
+            });
         });
     });
 
     describe('PUT /color', function() {
-        it("should put a secondary type into the database.", function() {
-
-            // NOT IMPLEMENTED
-            return Promise.resolve(1).should.eventually.equal(1);
+        it("should put a color into the database.", function(done) {
+            chai.request("http://localhost:2999")
+                .put("/colors")
+                .send({
+                    'r' : 100,
+                    'g' : 100,
+                    'b' : 100
+                })
+                .end(function(err, res) {
+                   expect(res).to.have.status(200);
+                   db.get(`SELECT * FROM colors WHERE
+                                colors.r=100
+                            AND colors.g=100
+                            AND colors.b=100
+                    `, {}, function(err, row) {
+                        if (err) {
+                            console.log(err.message);
+                            throw new Error("Database error retrieving color.");
+                        } else {
+                            if (row) {
+                                expect(row["r"]).to.equal(100);
+                                done();
+                            } else {
+                                throw new Error("Request did not save color into database.");
+                            }
+                        }
+                   });
+                });
         });
     });
 
     describe('DEL /color', function() {
-        it("should delete a secondary type from the database.", function() {
+        it("should delete a color from the database.", function(done) {
+            db.run(`INSERT INTO colors(r, g, b) VALUES (123, 124, 125);`, {}, function(err) {
+                if (err) {
+                    console.log(err.message);
+                    throw new Error("Couldn't insert a record into the colors table.");
+                } else {
+                    chai.request("http://localhost:2999")
+                        .delete("/colors")
+                        .send({ 'r' : 123,
+                                'g' : 124,
+                                'b' : 125
+                        })
+                        .end(function(err, res) {
+                            if (err) {
+                                console.log(err);
+                                throw new Error("Error receiving response from server");
+                            } else {
+                                expect(res).to.have.status(200);
+                                db.get(`SELECT * FROM colors WHERE
+                                                colors.r = 123
+                                            AND colors.g = 124
+                                            and colors.b = 125`, {}, function(err, row) {
+                                    if (err) {
+                                        console.log(err.message);
+                                        throw new Error("Couldn't query database for color.");
+                                    } else {
+                                        expect(row).to.equal(undefined);
+                                        done();
+                                    }
+                                });
+                            }
+                        });
+                }
+            });
 
-            // NOT IMPLEMENTED
-            return Promise.resolve(1).should.eventually.equal(1);
         });
     });
-*/
+
 });
 
 function clearSessions(dbConnection, cb) {
