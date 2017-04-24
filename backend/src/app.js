@@ -655,6 +655,123 @@ app.get("/query", function(req, res) {
     });
 });
 
+app.get(routes["pri"], function(req, res) {
+    let queryObj = req.query;
+    if (Object.keys(req.query).length === 0) {
+        db.all(`SELECT * FROM prim_type;`, [], function(err, rows) {
+
+            if (err) {
+                console.log(err.message);
+                res.status(500).send("Error retrieving primary types from database.");
+                return;
+            }
+
+            let respData = [];
+            for (let i = 0; i < rows.length; i += 1) {
+                respData.push(rows[i]);
+            }
+            res.status(200).send(respData);
+        });
+
+    } else if (queryObj.hasOwnProperty("id")) {
+
+        if (isNaN(parseInt(body["id"]))) {
+            res.status(400).send("The id property in the DELETE primary type request must be an integer.");
+            return;
+        }
+
+        db.get(`SELECT * FROM prim_type WHERE prim_type.id=?`, [queryObj["id"]], function (err, row) {
+            if (err) {
+                console.log(err.message);
+                res.status(500).send("Error retrieving primary type from database.");
+            }
+
+            res.status(200).send(row);
+        });
+    } else if (queryObj.hasOwnProperty("name")) {
+        db.get(`SELECT * FROM prim_type WHERE prim_type.name=?`, [queryObj["name"]], function (err, row) {
+            if (err) {
+                console.log(err.message);
+                res.status(500).send("Error retrieving primary type from database.");
+            }
+
+            res.status(200).send(row);
+        });
+    } else {
+        res.status(400).send(`GET request for ${routes["pri"]} must have a name property, or have an empty query string.`);
+    }
+
+
+});
+
+app.get(routes["sec"], function(req, res) {
+    let queryObj = req.query;
+    if (Object.keys(req.query).length === 0) {
+        db.all(`SELECT * FROM second_type;`, [], function(err, rows) {
+
+            if (err) {
+                console.log(err.message);
+                res.status(500).send("Error retrieving secondary types from database.");
+                return;
+            }
+
+            let respData = [];
+            for (let i = 0; i < rows.length; i += 1) {
+                respData.push(rows[i]);
+            }
+            res.status(200).send(respData);
+        });
+
+    } else if (queryObj.hasOwnProperty("id")) {
+
+        if (isNaN(parseInt(body["id"]))) {
+            res.status(400).send("The id property in the DELETE secondary type request must be an integer.");
+            return;
+        }
+
+        db.get(`SELECT * FROM second_type WHERE second_type.id=?`, [queryObj["id"]], function (err, row) {
+            if (err) {
+                console.log(err.message);
+                res.status(500).send("Error retrieving secondary type from database.");
+            }
+
+            res.status(200).send(row);
+        });
+    } else if (queryObj.hasOwnProperty("name") && queryObj.hasOwnProperty("primName")) {
+        db.get(`SELECT * FROM second_type WHERE second_type.name=?
+                        AND second_type.prim_type_id=(
+                                SELECT prim_type.id FROM prim_type WHERE prim_type.name=?
+                            );`, [queryObj["name"], queryObj["primName"]], function (err, row) {
+            if (err) {
+                console.log(err.message);
+                res.status(500).send("Error retrieving secondary type from database.");
+            }
+
+            res.status(200).send(row);
+        });
+    } else {
+        res.status(400).send(`GET request for ${routes["sec"]} must have an id property, have a name & primName property, or have an empty query string.`);
+    }
+
+});
+
+app.get(routes["col"], function(req, res) {
+    db.all(`SELECT * FROM colors;`, [], function(err, rows) {
+
+        if (err) {
+            console.log(err.message);
+            res.status(500).send("Error retrieving colors from database.");
+            return;
+        }
+
+        let respData = [];
+        for (let i = 0; i < rows.length; i += 1) {
+            respData.push(rows[i]);
+        }
+        res.status(200).send(respData);
+    });
+});
+
 app.get('/', function(req, res) {
     res.send("Hello world!");
 });

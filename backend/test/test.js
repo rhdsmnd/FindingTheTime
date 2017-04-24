@@ -592,6 +592,33 @@ describe('Routes', function() {
         });
     });
 
+
+    describe('GET /prim_type', function() {
+        it("should return a primary type.", function(done) {
+            chai.request("http://localhost:2999")
+                .get("/primary_type?name=coding")
+                .send({
+                    "name" : "coding"
+                })
+                .end(function(err, res) {
+                    expect(res).to.have.status(200);
+                    expect(JSON.parse(res.text)["name"]).to.equal("coding");
+                    done();
+                });
+        });
+
+        it("should return all primary types.", function(done) {
+            chai.request("http://localhost:2999")
+                .get("/primary_type")
+                .send()
+                .end(function(err, res) {
+                    expect(res).to.have.status(200);
+                    expect(JSON.parse(res.text).length).to.equal(4);
+                    done();
+                });
+        });
+    });
+
     describe('PUT /prim_type', function() {
         it("should put a primary type into the database.", function(done) {
 
@@ -604,7 +631,6 @@ describe('Routes', function() {
                     "b" : 131
                 })
                 .end(function(err, res) {
-                   console.log(res.text);
                    expect(res).to.have.status(200);
                    db.get(`SELECT prim_type.name FROM prim_type WHERE prim_type.name = "asdf";`, {}, function(err, row) {
                        expect(row["name"]).to.equal("asdf");
@@ -616,10 +642,11 @@ describe('Routes', function() {
 
     describe('DEL /prim_type', function() {
         before(function(done) {
-           db.run("INSERT INTO prim_type(name, r, g, b) VALUES (\"asdf\", 179, 161, 131);", {}, function(err) {
+           db.run("INSERT INTO prim_type(name, r, g, b) VALUES (\"asdfff\", 179, 161, 131);", {}, function(err) {
                if (!err) {
                    done();
                } else {
+                   console.log(err.message);
                    throw new Error("Couldn't insert primary type into database for testing.");
                }
            });
@@ -630,16 +657,38 @@ describe('Routes', function() {
             chai.request("http://localhost:2999")
                 .delete("/primary_type")
                 .send({
-                    "name" : "asdf"
+                    "name" : "asdfff"
                 })
                 .end(function(err, res) {
                     expect(res).to.have.status(200);
-                    db.get("SELECT prim_type.name FROM prim_type WHERE prim_type.name=\"asdf\";", {}, function(err, row) {
+                    db.get("SELECT prim_type.name FROM prim_type WHERE prim_type.name=\"asdfff\";", {}, function(err, row) {
                         expect(row).to.equal(undefined);
                         done();
                     });
                 });
 
+        });
+    });
+
+    describe('GET /sec_type', function() {
+        it('should get a secondary type from the database.', function(done) {
+            chai.request("http://localhost:2999")
+                .get("/secondary_type")
+                .end(function(err, res) {
+                    expect(res).to.have.status(200);
+                    expect(JSON.parse(res.text).length).to.equal(8);
+                    done();
+            });
+        });
+
+        it('should get all secondary types from the database.', function(done) {
+            chai.request("http://localhost:2999")
+                .get("/secondary_type?primName=coding&name=web server")
+                .end(function(err, res) {
+                    expect(res).to.have.status(200);
+                    expect(JSON.parse(res.text)["name"]).to.equal("web server");
+                    done();
+                })
         });
     });
 
@@ -655,7 +704,6 @@ describe('Routes', function() {
                     "b" : 131
                 })
                 .end(function(err, res) {
-                    console.log(res.text);
                     expect(res).to.have.status(200);
                     db.get("SELECT second_type.name FROM second_type WHERE second_type.name = \"testing\";", {}, function(err, row) {
                         expect(row["name"]).to.equal("testing");
@@ -702,6 +750,18 @@ describe('Routes', function() {
                     });
             });
         });
+    });
+
+    describe('GET /color', function() {
+       it("should get all colors in the database.", function(done) {
+           chai.request("http://localhost:2999")
+               .get("/colors")
+               .end(function(err, res) {
+                   expect(res).to.have.status(200);
+                   expect(JSON.parse(res.text).length).to.equal(22);
+                   done();
+               })
+       })
     });
 
     describe('PUT /color', function() {
